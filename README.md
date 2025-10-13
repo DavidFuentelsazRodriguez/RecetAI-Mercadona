@@ -52,7 +52,35 @@ La primera versión (MVP) de RecetAI Mercadona se centra en la **generación de 
 - **Base de datos / Dataset (Postgres)**  
 - **Scraper (Playwright)**
 
-- ## ⚙️ Instalación y ejecución
+## 🏗️ Estructura del Proyecto
+
+```
+recetai-mercadona/
+├── .github/               # Configuración de GitHub (CI/CD, issues templates, etc.)
+├── .vscode/              # Configuración específica de VS Code
+├── public/               # Archivos estáticos (imágenes, fuentes, etc.)
+├── src/
+│   ├── components/       # Componentes reutilizables de React
+│   ├── pages/            # Rutas de Next.js
+│   │   └── api/          # Endpoints de la API (Next.js API Routes)
+│   ├── server/           # Código del servidor
+│   │   ├── controllers/  # Controladores para las rutas de la API
+│   │   ├── models/       # Modelos de la base de datos (Mongoose)
+│   │   ├── routes/       # Definición de rutas de la API
+│   │   └── index.ts      # Punto de entrada del servidor
+│   ├── styles/           # Estilos globales y módulos CSS
+│   └── types/            # Tipos de TypeScript
+├── .env.example         # Plantilla de variables de entorno
+├── .eslintrc.json       # Configuración de ESLint
+├── .gitignore           # Archivos ignorados por Git
+├── .prettierrc          # Configuración de Prettier
+├── next.config.js       # Configuración de Next.js
+├── package.json         # Dependencias y scripts
+├── README.md            # Este archivo
+└── tsconfig.json       # Configuración de TypeScript
+```
+
+## ⚙️ Instalación y ejecución
 
 ### 1️⃣ Clonar el repositorio
 

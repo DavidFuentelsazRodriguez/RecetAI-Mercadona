@@ -1,6 +1,7 @@
-import { Document, Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
-interface IProduct extends Document {
+// Interfaz para los datos del producto (la usamos para todo)
+export interface ProductData {
   name: string;
   brand: string;
   category: string;
@@ -17,7 +18,7 @@ interface IProduct extends Document {
   lastUpdated: Date;
 }
 
-const ProductSchema = new Schema<IProduct>({
+const ProductSchema = new Schema<ProductData>({
   name: { type: String, required: true, index: true },
   brand: { type: String, required: true },
   category: { type: String, required: true, index: true },
@@ -34,4 +35,4 @@ const ProductSchema = new Schema<IProduct>({
   lastUpdated: { type: Date, default: Date.now },
 });
 
-export const Product = model<IProduct>('Product', ProductSchema);
+export const Product = model<ProductData>('Product', ProductSchema);

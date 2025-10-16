@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express'
 import cors from 'cors';
 import { connectDB } from './config/database';
+import productsRouter from './routes/products';
 
 
 const app: Express = express();
@@ -10,9 +11,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check route
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
+
+// API routes
+app.use('/api', productsRouter);
+
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found' });
 });

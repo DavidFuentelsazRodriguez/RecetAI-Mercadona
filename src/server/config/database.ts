@@ -21,7 +21,9 @@ export const connectDB = async (): Promise<void> => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    const conn = await mongoose.connect(MONGODB_URI);
+    const conn = await mongoose.connect(MONGODB_URI, {
+      dbName: 'recetAI'
+    });
     console.log(`🛢️  MongoDB connected: ${conn.connection.host}`);
     
     // Register models

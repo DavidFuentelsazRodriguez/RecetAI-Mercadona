@@ -3,7 +3,7 @@ import { ProductData } from '../models/Product';
 
 const MERCADONA_API_BASE_URL = 'https://tienda.mercadona.es/api';
 
-interface MercadonaCategoryBase {
+export interface MercadonaCategoryBase {
   id: number;
   name: string;
   order: number;
@@ -23,7 +23,7 @@ interface MercadonaCategoryResponse {
   results: MercadonaCategory[];
 }
 
-interface MercadonaProduct {
+export interface MercadonaProduct {
   display_name: string;
   thumbnail: string;
   categories: Array<{

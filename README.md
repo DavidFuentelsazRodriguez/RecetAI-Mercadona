@@ -107,32 +107,4 @@ npm install
 
 ```
 OPENAI_API_KEY=tu_clave_aqui
-OPENFOODFACTS_API_URL=https://world.openfoodfacts.org/api/v2
 ```
-
-## 🌱 Integración con Open Food Facts
-
-RecetAI Mercadona utiliza la API de Open Food Facts para enriquecer los productos de Mercadona con información nutricional detallada. Esta integración nos permite:
-
-- Obtener datos nutricionales completos de miles de productos
-- Mostrar información detallada sobre macronutrientes, vitaminas y minerales
-- Mejorar la precisión de las recomendaciones nutricionales
-
-### Cómo funciona
-
-1. **Búsqueda de productos**: Se utiliza el código de barras o el nombre del producto para buscar en la base de datos de Open Food Facts.
-2. **Procesamiento de datos**: Los datos nutricionales se normalizan y almacenan en nuestra base de datos MongoDB.
-3. **Actualización automática**: Los productos se actualizan periódicamente para mantener la información nutricional actualizada.
-
-### Características implementadas
-
-- Búsqueda por código de barras o nombre del producto
-- Almacenamiento en caché de resultados para mejorar el rendimiento
-- Manejo de errores para productos no encontrados
-- Actualización programada de datos nutricionales
-
-### Próximas mejoras
-
-- Implementar un sistema de coincidencia mejorado para productos sin código de barras
-- Añadir soporte para alérgenos e ingredientes
-- Mejorar la precisión de la búsqueda por nombre de producto

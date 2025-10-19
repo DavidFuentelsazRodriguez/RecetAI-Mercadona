@@ -22,14 +22,14 @@ export const connectDB = async (): Promise<void> => {
     }
 
     const conn = await mongoose.connect(MONGODB_URI, {
-      dbName: 'recetAI'
+      dbName: 'recetAI',
     });
     console.log(`🛢️  MongoDB connected: ${conn.connection.host}`);
-    
+
     // Register models
     mongoose.model('Product', Product.schema);
     mongoose.model('Recipe', Recipe.schema);
-    
+
     console.log('📦 Database models registered');
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error}`);
@@ -45,7 +45,7 @@ export const db = {
 };
 
 // Handle connection events
-db.connection.on('error', (error) => {
+db.connection.on('error', error => {
   console.error('MongoDB connection error:', error);
 });
 

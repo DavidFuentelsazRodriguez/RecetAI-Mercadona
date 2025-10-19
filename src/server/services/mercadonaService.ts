@@ -46,9 +46,10 @@ export const fetchCategories = async (): Promise<MercadonaCategoryBase[]> => {
       `${MERCADONA_API_BASE_URL}/categories/`,
       {
         headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          Accept: 'application/json, text/plain, */*',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        },
       }
     );
 
@@ -57,11 +58,11 @@ export const fetchCategories = async (): Promise<MercadonaCategoryBase[]> => {
       return categories.reduce<MercadonaCategoryBase[]>((acc, category) => {
         const { categories: subCategories, ...mainCategory } = category;
         acc.push(mainCategory);
-        
+
         if (subCategories && subCategories.length > 0) {
           acc.push(...flattenCategories(subCategories));
         }
-        
+
         return acc;
       }, []);
     };
@@ -74,7 +75,7 @@ export const fetchCategories = async (): Promise<MercadonaCategoryBase[]> => {
       console.error('Error details:', {
         status: axiosError.response?.status,
         statusText: axiosError.response?.statusText,
-        data: axiosError.response?.data
+        data: axiosError.response?.data,
       });
     }
     throw new Error('Failed to fetch categories from Mercadona API');
@@ -88,13 +89,14 @@ export const fetchCategories = async (): Promise<MercadonaCategoryBase[]> => {
  */
 export const fetchProductsByCategory = async (categoryId: number): Promise<MercadonaProduct[]> => {
   try {
-    const response = await axios.get<{ categories: any}>(
+    const response = await axios.get<{ categories: any }>(
       `${MERCADONA_API_BASE_URL}/categories/${categoryId}/`,
       {
         headers: {
-          'Accept': 'application/json, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          Accept: 'application/json, text/plain, */*',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        },
       }
     );
 
@@ -105,16 +107,16 @@ export const fetchProductsByCategory = async (categoryId: number): Promise<Merca
           // Add products from this category with their full details
           products.push(...category.products);
         }
-        
+
         // Recursively process subcategories
         if (category.categories && Array.isArray(category.categories)) {
           products.push(...extractProducts(category.categories));
         }
-        
+
         return products;
       }, []);
     };
-    
+
     return extractProducts(response.data.categories || []);
   } catch (error) {
     console.error(`Error fetching products for category ${categoryId}:`, error);
@@ -123,7 +125,7 @@ export const fetchProductsByCategory = async (categoryId: number): Promise<Merca
       console.error('Error details:', {
         status: axiosError.response?.status,
         statusText: axiosError.response?.statusText,
-        data: axiosError.response?.data
+        data: axiosError.response?.data,
       });
     }
     throw new Error(`Failed to fetch products for category ${categoryId}`);
@@ -138,7 +140,7 @@ export const fetchAllProducts = async (): Promise<MercadonaProduct[]> => {
   try {
     const categories = await fetchCategories();
     const allProducts: MercadonaProduct[] = [];
-    
+
     // Process each category to get its products
     for (const category of categories) {
       try {
@@ -149,7 +151,7 @@ export const fetchAllProducts = async (): Promise<MercadonaProduct[]> => {
         continue;
       }
     }
-    
+
     return allProducts;
   } catch (error) {
     console.error('Error in fetchAllProducts:', error);
@@ -170,10 +172,10 @@ export const transformToProduct = (mercadonaProduct: MercadonaProduct): ProductD
   price: parseFloat(mercadonaProduct.price_instructions.unit_price) || 0,
   unit: `${mercadonaProduct.price_instructions.unit_size} ${mercadonaProduct.price_instructions.size_format}`,
   nutritionalInfo: {
-    calories: 0,  
-    protein: 0,   
-    carbs: 0,     
-    fat: 0,       
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
   },
   isMercadona: true,
   lastUpdated: new Date(),

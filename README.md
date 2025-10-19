@@ -30,6 +30,7 @@ La aplicación combina datos nutricionales obtenidos del catálogo de Mercadona 
 La primera versión (MVP) de RecetAI Mercadona se centra en la **generación de recetas personalizadas** a partir de los parámetros definidos por el usuario.
 
 **Características principales del MVP:**
+
 - Entrada de datos desde un formulario simple:
   - Objetivo nutricional (por ejemplo: “alta en carbohidratos y proteínas”).
   - Preferencia dietética (vegano, vegetariano, omnívoro, sin gluten…).
@@ -46,11 +47,12 @@ La primera versión (MVP) de RecetAI Mercadona se centra en la **generación de 
 
 ## 🧩 Componentes
 
-- **Frontend (React + TypeScript)**  
-- **Backend (Node.js + Express)**  
-- **Módulo IA (OpenAI)**  
-- **Base de datos / Dataset (Postgres)**  
+- **Frontend (React + TypeScript)**
+- **Backend (Node.js + Express)**
+- **Módulo IA (OpenAI)**
+- **Base de datos / Dataset (MongoDB)**
 - **Scraper (Playwright)**
+- **Integración Open Food Facts** (para datos nutricionales)
 
 ## 🏗️ Estructura del Proyecto
 
@@ -103,4 +105,34 @@ npm install
 
 ### 4️⃣ Variables de entorno (.env)
 
+```
 OPENAI_API_KEY=tu_clave_aqui
+OPENFOODFACTS_API_URL=https://world.openfoodfacts.org/api/v2
+```
+
+## 🌱 Integración con Open Food Facts
+
+RecetAI Mercadona utiliza la API de Open Food Facts para enriquecer los productos de Mercadona con información nutricional detallada. Esta integración nos permite:
+
+- Obtener datos nutricionales completos de miles de productos
+- Mostrar información detallada sobre macronutrientes, vitaminas y minerales
+- Mejorar la precisión de las recomendaciones nutricionales
+
+### Cómo funciona
+
+1. **Búsqueda de productos**: Se utiliza el código de barras o el nombre del producto para buscar en la base de datos de Open Food Facts.
+2. **Procesamiento de datos**: Los datos nutricionales se normalizan y almacenan en nuestra base de datos MongoDB.
+3. **Actualización automática**: Los productos se actualizan periódicamente para mantener la información nutricional actualizada.
+
+### Características implementadas
+
+- Búsqueda por código de barras o nombre del producto
+- Almacenamiento en caché de resultados para mejorar el rendimiento
+- Manejo de errores para productos no encontrados
+- Actualización programada de datos nutricionales
+
+### Próximas mejoras
+
+- Implementar un sistema de coincidencia mejorado para productos sin código de barras
+- Añadir soporte para alérgenos e ingredientes
+- Mejorar la precisión de la búsqueda por nombre de producto

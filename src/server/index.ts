@@ -1,8 +1,7 @@
-import express, { Express, Request, Response } from 'express'
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import { connectDB } from './config/database';
 import productsRouter from './routes/products';
-
 
 const app: Express = express();
 const PORT = process.env.PORT || 5000;

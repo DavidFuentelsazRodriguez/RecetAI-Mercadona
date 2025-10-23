@@ -30,6 +30,7 @@ La aplicación combina datos nutricionales obtenidos del catálogo de Mercadona 
 La primera versión (MVP) de RecetAI Mercadona se centra en la **generación de recetas personalizadas** a partir de los parámetros definidos por el usuario.
 
 **Características principales del MVP:**
+
 - Entrada de datos desde un formulario simple:
   - Objetivo nutricional (por ejemplo: “alta en carbohidratos y proteínas”).
   - Preferencia dietética (vegano, vegetariano, omnívoro, sin gluten…).
@@ -46,11 +47,14 @@ La primera versión (MVP) de RecetAI Mercadona se centra en la **generación de 
 
 ## 🧩 Componentes
 
-- **Frontend (React + TypeScript)**  
-- **Backend (Node.js + Express)**  
-- **Módulo IA (OpenAI)**  
-- **Base de datos / Dataset (Postgres)**  
-- **Scraper (Playwright)**
+- **Frontend (React + TypeScript)**
+- **Backend (Node.js + Express)**
+- **Módulo IA (OpenAI)**
+- **Base de datos (MongoDB)**
+- **Scraper (Cheerio + Axios)**
+  - Extrae datos de productos de Mercadona desde FatSecret España
+  - Obtiene información nutricional detallada (22 campos)
+  - Sincronización automática con la base de datos
 
 ## 🏗️ Estructura del Proyecto
 
@@ -64,9 +68,12 @@ recetai-mercadona/
 │   ├── pages/            # Rutas de Next.js
 │   │   └── api/          # Endpoints de la API (Next.js API Routes)
 │   ├── server/           # Código del servidor
+│   │   ├── config/       # Configuraciones (base de datos, etc.)
 │   │   ├── controllers/  # Controladores para las rutas de la API
 │   │   ├── models/       # Modelos de la base de datos (Mongoose)
 │   │   ├── routes/       # Definición de rutas de la API
+│   │   ├── services/     # Lógica de negocio y servicios
+│   │   │   ├── __tests__/  # Pruebas unitarias de servicios
 │   │   └── index.ts      # Punto de entrada del servidor
 │   ├── styles/           # Estilos globales y módulos CSS
 │   └── types/            # Tipos de TypeScript
@@ -74,7 +81,7 @@ recetai-mercadona/
 ├── .eslintrc.json       # Configuración de ESLint
 ├── .gitignore           # Archivos ignorados por Git
 ├── .prettierrc          # Configuración de Prettier
-├── next.config.js       # Configuración de Next.js
+├── .jest.config.js      # Configuración de Jest
 ├── package.json         # Dependencias y scripts
 ├── README.md            # Este archivo
 └── tsconfig.json       # Configuración de TypeScript
@@ -103,4 +110,27 @@ npm install
 
 ### 4️⃣ Variables de entorno (.env)
 
-OPENAI_API_KEY=tu_clave_aqui
+Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
+
+```
+#PORT
+PORT=5000
+
+# Node Environment
+NODE_ENV=development
+
+# MongoDB
+MONGODB_URI=<tu_uri_aqui>
+
+```
+
+### 5️⃣ Flujo de sincronización
+
+La aplicación incluye un sistema de sincronización que permite mantener actualizada la base de datos de productos de Mercadona. El proceso se realiza directamente desde la interfaz de usuario de la aplicación:
+
+1. **Iniciar sincronización**: Desde el panel de administración, haz clic en "Sincronizar productos".
+2. **Procesamiento**: La aplicación se conectará a FatSecret España y comenzará a extraer la información de los productos.
+3. **Actualización**: Los productos se actualizarán automáticamente en la base de datos.
+4. **Confirmación**: Recibirás una notificación cuando la sincronización haya finalizado, mostrando un resumen de los cambios realizados.
+
+> **Nota**: La sincronización puede tardar varios minutos dependiendo de la cantidad de productos a actualizar.

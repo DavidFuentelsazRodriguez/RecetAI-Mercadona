@@ -1,6 +1,6 @@
 import { Product } from '../models/Product';
-import { getTransformedProducts } from './mercadonaService';
 import { ProductData } from '../models/Product';
+import { getMercadonaProductsFromFatSecret } from './fatsecretScraperService';
 
 /**
  * Cleans all existing Mercadona products from database
@@ -12,7 +12,7 @@ export const cleanMercadonaProducts = async () => {
     return {
       success: true,
       message: `Deleted ${result.deletedCount} existing Mercadona products`,
-      deletedCount: result.deletedCount
+      deletedCount: result.deletedCount,
     };
   } catch (error) {
     console.error('Error cleaning products:', error);
@@ -21,24 +21,22 @@ export const cleanMercadonaProducts = async () => {
 };
 
 /**
- * Fetches products from Mercadona API and stores them in the database
+ * Fetches products from FatSecret Spain and stores them in the database
  * @returns Object with sync result
  */
 export const syncProducts = async () => {
   try {
-    console.log('Starting product sync from Mercadona...');
-    const products: ProductData[] = await getTransformedProducts();
-    console.log(`Fetched ${products.length} products from Mercadona. Updating database...`);
+    const products: ProductData[] = await getMercadonaProductsFromFatSecret();
 
     // Prepare bulk operations for efficient update/insert
     const bulkOps = products.map(product => ({
       updateOne: {
-        filter: { name: product.name, brand: product.brand },
+        filter: { name: product.name },
         update: {
-          $set: product
+          $set: product,
         },
-        upsert: true
-      }
+        upsert: true,
+      },
     }));
 
     // Execute bulk operations
@@ -47,11 +45,11 @@ export const syncProducts = async () => {
       result = await Product.bulkWrite(bulkOps);
     }
 
-    console.log('Product sync completed successfully');
     return {
       success: true,
       message: `Successfully synced ${products.length} products`,
-      stats: result
+      syncedCount: products.length,
+      stats: result,
     };
   } catch (error) {
     console.error('Error syncing products:', error);
@@ -79,7 +77,7 @@ export const getProducts = async (category?: string, search?: string, page = 1, 
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { brand: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } }
+        { category: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -88,12 +86,8 @@ export const getProducts = async (category?: string, search?: string, page = 1, 
     const skip = (pageNum - 1) * limitNum;
 
     const [products, total] = await Promise.all([
-      Product.find(query)
-        .sort({ name: 1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Product.countDocuments(query)
+      Product.find(query).sort({ name: 1 }).skip(skip).limit(limitNum).lean(),
+      Product.countDocuments(query),
     ]);
 
     return {
@@ -102,7 +96,7 @@ export const getProducts = async (category?: string, search?: string, page = 1, 
       total,
       page: pageNum,
       pages: Math.ceil(total / limitNum),
-      data: products
+      data: products,
     };
   } catch (error) {
     console.error('Error fetching products:', error);

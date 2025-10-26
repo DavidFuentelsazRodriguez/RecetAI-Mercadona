@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import { connectDB } from './config/database';
 import productsRouter from './routes/products';
+import recipesRouter from './routes/recipes';
 
 const app: Express = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,7 @@ app.get('/api/health', (_req: Request, res: Response) => {
 
 // API routes
 app.use('/api', productsRouter);
+app.use('/api', recipesRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: 'Route not found' });

@@ -101,6 +101,12 @@ const extractNutritionInfo = ($: cheerio.CheerioAPI): any | null => {
           nutritionData.sugar = sugar;
         }
       }
+      else if (label.includes('fibra')) {
+        const fiber = parseNutritionValue(value);
+        if (fiber !== undefined) {
+          nutritionData.fiber = fiber;
+        }
+      }
       else if (label.includes('sal') || label.includes('sodio')) {
         const sodium = parseNutritionValue(value);
         if (sodium !== undefined) {
@@ -256,7 +262,6 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
             const productData: ProductData = {
               name: product.name,
               brand: 'Mercadona',
-              category: 'General',
               nutritionalInfo: nutrition,
               isMercadona: true,
               lastUpdated: new Date(),

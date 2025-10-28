@@ -29,24 +29,6 @@ export interface RecipeSuggestion {
   dietaryTags: string[];
 }
 
-export interface RecipeGenerationConfig {
-  model: string;
-  temperature: number;
-  max_tokens: number;
-  top_p: number;
-  frequency_penalty: number;
-  presence_penalty: number;
-}
-
-export const DEFAULT_RECIPE_CONFIG: RecipeGenerationConfig = {
-  model: 'gpt-5',
-  temperature: 0.7,
-  max_tokens: 1500,
-  top_p: 1,
-  frequency_penalty: 0,
-  presence_penalty: 0,
-};
-
 export interface RecipeGenerationParams {
   preferences: {
     diet: 'vegan' | 'vegetarian' | 'omnivore' | 'gluten-free' | 'lactose-free' | 'keto' | 'low-carb' | 'high-protein' | 'high-fiber';
@@ -56,6 +38,7 @@ export interface RecipeGenerationParams {
     difficulty?: 'easy' | 'medium' | 'hard';
   };
   nutritionalGoals: {
+    minCalories?: number;
     maxCalories?: number;
     minProtein?: number;
     maxCarbs?: number;

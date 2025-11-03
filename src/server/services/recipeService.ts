@@ -1,8 +1,13 @@
-import { gemini } from '../config/gemini';
 import { RecipeSuggestion, RecipeGenerationParams } from '../types/recipe.types';
 import { Product } from '../models/Product';
-import { RecipeValidationError, GeminiApiError } from '../errors/recipeErrors';
+import {
+  createGeminiChat,
+  extractJsonResponse,
+  validateNutritionalRequirements,
+  handleGenerationError,
+} from './recipeGeneration';
 import { RecipeSuggestionSchema } from '../types/recipe.schemas';
+import { RecipeValidationError } from '../errors/recipeErrors';
 import { z } from 'zod';
 
 export class RecipeService {
@@ -16,301 +21,217 @@ export class RecipeService {
    * @throws Error - If the AI model fails to generate a valid recipe, or if the generated recipe is missing a required field or does not include at least one ingredient and one step.
    */
   public static async generateRecipe(params: RecipeGenerationParams): Promise<RecipeSuggestion> {
-    const { preferred: preferredProducts, available: availableProducts } = await this.getFilteredProducts(params);
-    const prompt = this.buildPrompt(params, preferredProducts, availableProducts);
+    const limit = 100;
+    const ingredientThemes = params.preferences.ingredientThemes;
+    const query = {};
+    const products = await this.fetchProducts(query, limit);
+
+    const prompt = this.buildPrompt(params, products, ingredientThemes);
     let rawApiResponseText: string | undefined;
 
     try {
-      const systemPrompt =
-        'You are a nutrition expert chef who creates healthy and delicious recipes based on Mercadona products. Your response MUST be a valid JSON with the RecipeSuggestion structure. Respond ONLY with the JSON object, without any introductory text or markdown formatting.'; // Prompt mejorado
-
-      const chat = gemini.recipeModel.startChat({
-        history: [
-          { role: 'user', parts: [{ text: systemPrompt }] },
-          {
-            role: 'model',
-            parts: [{ text: 'Understood, I am ready to generate recipes in JSON format.' }],
-          },
-        ],
-      });
-
+      // Initialize chat and send prompt
+      const chat = createGeminiChat();
       console.log('Sending prompt to Gemini...');
+
       const result = await chat.sendMessage(prompt);
-      const response = result.response;
-      rawApiResponseText = response.text();
-      console.log('Received raw response from Gemini.');
+      rawApiResponseText = result.response.text();
+      console.log('Received response from Gemini.');
 
-      let jsonString = rawApiResponseText;
-      let rawRecipeObject: any;
+      // Parse and validate the response
+      const rawRecipeObject = extractJsonResponse(rawApiResponseText);
+      const validatedRecipe = RecipeSuggestionSchema.parse(rawRecipeObject);
 
-      try {
-        rawRecipeObject = JSON.parse(jsonString);
-        console.log('Successfully parsed JSON directly.');
-      } catch (e1) {
-        console.warn('Direct JSON parsing failed, attempting extraction...');
-        try {
-          const firstBrace = jsonString.indexOf('{');
-          const lastBrace = jsonString.lastIndexOf('}');
-          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-            rawRecipeObject = JSON.parse(jsonString);
-            console.log('Successfully parsed JSON extracted between {} braces.');
-          } else {
-            throw new Error('No JSON object found between braces');
-          }
-        } catch (e2) {
-          console.warn('JSON extraction between braces failed, attempting regex...');
-          const jsonMatch =
-            rawApiResponseText.match(/```json\n([\s\S]*?)\n```/) ||
-            rawApiResponseText.match(/```([\s\S]*?)```/) ||
-            rawApiResponseText.match(/\{[\s\S]*\}/);
-          jsonString = jsonMatch
-            ? jsonMatch[0].replace(/```json\n?/, '').replace(/```$/, '')
-            : rawApiResponseText;
-          try {
-            rawRecipeObject = JSON.parse(jsonString);
-            console.log('Successfully parsed JSON extracted via regex.');
-          } catch (parseError) {
-            console.error('Failed to parse JSON even after extraction attempts:', parseError);
-            console.error('Original raw text:', rawApiResponseText);
-            console.error('Attempted JSON string:', jsonString);
-            throw new RecipeValidationError(
-              'The recipe format received was invalid (not valid JSON).'
-            );
-          }
-        }
-      }
+      // Validate nutritional requirements
+      validateNutritionalRequirements(
+        validatedRecipe,
+        products,
+        params
+      );
 
-      try {
-        console.log('Validating recipe structure with Zod...');
-        const validatedRecipe = RecipeSuggestionSchema.parse(rawRecipeObject);
-        console.log('Recipe validation successful.');
-
-        return validatedRecipe as RecipeSuggestion;
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          console.error('Recipe validation failed:', validationError.issues);
-          const errorMessages = validationError.issues
-            .map(e => `${e.path.join('.')} : ${e.message}`)
-            .join('; ');
-          throw new RecipeValidationError(
-            `Invalid recipe structure received from AI: ${errorMessages}`
-          );
-        }
-        console.error('Unexpected error during Zod validation:', validationError);
-        throw validationError;
-      }
+      return validatedRecipe;
     } catch (error) {
-      console.error('Error in generateRecipe main process:', error);
-
-      if (error instanceof RecipeValidationError || error instanceof GeminiApiError) {
-        throw error;
-      } else {
-        throw new GeminiApiError(
-          `Failed to generate recipe. Service issue: ${error instanceof Error ? error.message : 'Unknown API error'}`,
-          rawApiResponseText
+      if (error instanceof z.ZodError) {
+        console.error('Recipe validation failed:', error.issues);
+        const errorMessages = error.issues
+          .map(e => `${e.path.join('.')} : ${e.message}`)
+          .join('; ');
+        throw new RecipeValidationError(
+          `Invalid recipe structure received from AI: ${errorMessages}`
         );
       }
+      return handleGenerationError(error, rawApiResponseText);
     }
   }
 
   /**
-   * Gets a list of products filtered by the nutritional goals specified in the parameters.
-   * The products are filtered by the maximum calories, minimum protein, maximum carbohydrates, and maximum fat.
-   * @param params The parameters for generating the recipe, including the nutritional goals.
-   * @returns A promise that resolves to a list of products filtered by the nutritional goals.
+   * Fetches products from the database based on the provided query
+   * @param query The MongoDB query object
+   * @param limit Maximum number of products to return
+   * @param excludeIds Array of product IDs to exclude
+   * @returns An array of products
    */
-  private static async getFilteredProducts(
-    params: RecipeGenerationParams
-  ): Promise<{ preferred: any[]; available: any[] }> {
-    const { nutritionalGoals, preferences } = params;
-    const preferredIngredients = preferences.preferredIngredients || [];
-    const preferredProducts: any[] = [];
-    const availableProducts: any[] = [];
-    const limit = 100; // Límite total de productos para el prompt
-    const fetchedIds = new Set<string>(); // Para evitar duplicados
-
-    console.log(
-      `Filtering products. Preferred: [${preferredIngredients.join(', ')}]. Nutritional Goals:`,
-      nutritionalGoals
-    );
-
-    // 1. Buscar productos preferidos que cumplan requisitos nutricionales
-    if (preferredIngredients.length > 0) {
-      const preferredQuery: any = {
-        name: { $in: preferredIngredients.map(ing => new RegExp(ing.trim(), 'i')) }, // trim() añadido
-      };
-      // Aplicar filtros nutricionales TAMBIÉN a los preferidos
-      if (nutritionalGoals.maxCalories)
-        preferredQuery['nutritionalInfo.calories'] = { $lte: nutritionalGoals.maxCalories };
-      if (nutritionalGoals.minProtein)
-        preferredQuery['nutritionalInfo.protein'] = { $gte: nutritionalGoals.minProtein };
-      if (nutritionalGoals.maxCarbs)
-        preferredQuery['nutritionalInfo.carbs'] = { $lte: nutritionalGoals.maxCarbs };
-      if (nutritionalGoals.maxFat)
-        preferredQuery['nutritionalInfo.fat'] = { $lte: nutritionalGoals.maxFat };
-      if (nutritionalGoals.minCalories)
-        preferredQuery['nutritionalInfo.calories'] = {
-          ...(preferredQuery['nutritionalInfo.calories'] || {}),
-          $gte: nutritionalGoals.minCalories,
-        }; // Añadido minCalories
-
-      try {
-        const foundPreferred = await Product.find(preferredQuery)
-          .limit(preferredIngredients.length * 2) // Un límite razonable
-          .lean();
-        foundPreferred.forEach(p => {
-          if (!fetchedIds.has(p._id.toString())) {
-            preferredProducts.push(p);
-            fetchedIds.add(p._id.toString());
-          }
-        });
-        console.log(`Found ${preferredProducts.length} preferred products matching criteria.`);
-      } catch (dbError) {
-        console.error('Error fetching preferred products:', dbError);
-        // Continuar sin preferidos si hay error de DB
-      }
+  private static async fetchProducts(
+    query: Record<string, unknown>,
+    limit: number
+  ): Promise<any[]> {
+    try {
+      const products = await Product.find(query).limit(limit).lean();
+      return products;
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
     }
-
-    // 2. Buscar otros productos disponibles
-    const remainingLimit = Math.max(0, limit - preferredProducts.length);
-    if (remainingLimit > 0) {
-      const availableQuery: any = {
-        _id: { $nin: Array.from(fetchedIds) }, // Excluir los ya encontrados
-      };
-      // Aplicar filtros nutricionales a los disponibles
-      if (nutritionalGoals.maxCalories)
-        availableQuery['nutritionalInfo.calories'] = { $lte: nutritionalGoals.maxCalories };
-      if (nutritionalGoals.minProtein)
-        availableQuery['nutritionalInfo.protein'] = { $gte: nutritionalGoals.minProtein };
-      if (nutritionalGoals.maxCarbs)
-        availableQuery['nutritionalInfo.carbs'] = { $lte: nutritionalGoals.maxCarbs };
-      if (nutritionalGoals.maxFat)
-        availableQuery['nutritionalInfo.fat'] = { $lte: nutritionalGoals.maxFat };
-      if (nutritionalGoals.minCalories)
-        availableQuery['nutritionalInfo.calories'] = {
-          ...(availableQuery['nutritionalInfo.calories'] || {}),
-          $gte: nutritionalGoals.minCalories,
-        }; // Añadido minCalories
-
-      try {
-        const foundAvailable = await Product.find(availableQuery)
-          // .sort({ /* Podrías añadir un sort si quieres, p.ej., por popularidad si tuvieras ese dato */ })
-          .limit(remainingLimit)
-          .lean();
-        availableProducts.push(...foundAvailable);
-        console.log(`Found ${availableProducts.length} additional available products.`);
-      } catch (dbError) {
-        console.error('Error fetching available products:', dbError);
-        // Continuar sin disponibles si hay error de DB
-      }
-    } else {
-      console.log('Limit reached with preferred products.');
-    }
-
-    return { preferred: preferredProducts, available: availableProducts };
   }
 
-  /**
-   * Builds a prompt for the recipe generation model based on the given parameters and available products.
-   * The prompt includes dietary requirements, nutritional objectives, available products, and specific instructions.
-   * @param params The parameters for generating the recipe, including the dietary preferences and nutritional objectives.
-   * @param products The available products that can be used for generating the recipe.
-   * @returns A string containing the prompt for the recipe generation model.
-   */
-  private static buildPrompt(params: RecipeGenerationParams, preferredProducts: any[], availableProducts: any[]): string {
+  private static buildPrompt(
+    params: RecipeGenerationParams,
+    products: any[],
+    ingredientThemes: string[]
+  ): string {
     const { preferences, nutritionalGoals } = params;
 
-    const dietInstructions: Record<string, string> = {
-      vegan: 'The recipe should be 100% vegan (without animal or processed products).',
-      vegetarian:
-        'The recipe should be vegetarian (can include dairy and eggs, but no meat or fish).',
-      'gluten-free':
-        'The recipe should be gluten-free. Avoid wheat, barley, oats, and their derivatives.',
-      'lactose-free':
-        'The recipe should not contain lactose. Avoid milk and dairy products that contain lactose.',
-      keto: 'The recipe should be ketogenic (low in carbohydrates, high in healthy fats).',
-      'low-carb': 'The recipe should be low in carbohydrates.',
-      'high-protein': 'The recipe should be rich in protein.',
-      'high-fiber': 'The recipe should be rich in fiber.',
+    const formatProducts = (products: any[]) =>
+      products
+        .map(
+          p =>
+            `- ${p.name}${p.brand ? ` (${p.brand})` : ''} | ` +
+            `Calories: ${p.nutritionalInfo?.calories || 'N/A'} | ` +
+            `Protein: ${p.nutritionalInfo?.protein || 'N/A'}g | ` +
+            `Carbs: ${p.nutritionalInfo?.carbs || 'N/A'}g | ` +
+            `Fat: ${p.nutritionalInfo?.fat || 'N/A'}g`
+        )
+        .join('\n');
+
+    const formattedProducts = formatProducts(products);
+
+    const dietRequirements = {
+      vegan: 'Must be 100% plant-based, no animal products including honey, dairy, or eggs.',
+      vegetarian: 'May include dairy and eggs but no meat, poultry, or fish.',
+      keto: 'Must be very low in carbs (under 10g net carbs per serving).',
+      'gluten-free': 'Must not contain wheat, barley, rye, or any gluten sources.',
+      'lactose-free': 'Must not contain lactose or dairy products.',
+      'high-protein': 'Must contain at least 25g of protein per serving.',
+      'low-carb': 'Must contain less than 30g of net carbs per serving.',
+      'high-fiber': 'Must contain at least 8g of fiber per serving.',
+      omnivore: 'May include all food groups including meat, dairy, and plant-based ingredients.',
     };
 
-    const dietInstruction = dietInstructions[preferences.diet] || '';
+    const dietInstruction =
+      dietRequirements[preferences.diet] || 'No specific dietary restrictions.';
 
-    const includedProductsList =
-      preferredProducts.length > 0
-        ? preferredProducts.map(p => `- ${p.name}${p.brand ? ` (${p.brand})` : ''}`).join('\n')
-        : 'None specifically requested or found matching criteria.'; // Mensaje más claro
-
-    const availableProductsList =
-      availableProducts.length > 0
-        ? availableProducts.map(p => `- ${p.name}${p.brand ? ` (${p.brand})` : ''}`).join('\n')
-        : 'None available based on criteria.'; // Mensaje más claro
-
-    // Construir el prompt
-    // (Usa el mismo template que tenías, pero ahora las listas vienen pre-calculadas)
     return `
-  Generate a recipe in Spanish with the following characteristics:
+## RECIPE GENERATION INSTRUCTIONS
 
-  DIETARY REQUIREMENTS:
-  ${dietInstruction}
-  - Ingredients to avoid: ${preferences.excludedIngredients?.join(', ') || 'None in particular'}
-  - Cooking time: ${preferences.cookingTime || 'Not specified'} minutes
-  - Difficulty: ${preferences.difficulty || 'Not specified'}
+Your task is to generate a recipe in SPANISH that STRICTLY meets all the requirements.
 
-  NUTRITIONAL OBJECTIVES PER PORTION:
-  ${nutritionalGoals.minCalories ? `- Minimum calories: ${nutritionalGoals.minCalories}` : ''}
-  ${nutritionalGoals.maxCalories ? `- Maximum calories: ${nutritionalGoals.maxCalories}` : ''}
-  ${nutritionalGoals.minProtein ? `- Minimum of proteins: ${nutritionalGoals.minProtein}g` : ''}
-  ${nutritionalGoals.maxCarbs ? `- Maximum of carbohydrates: ${nutritionalGoals.maxCarbs}g` : ''}
-  ${nutritionalGoals.maxFat ? `- Maximum of fats: ${nutritionalGoals.maxFat}g` : ''}
+### DIETARY PREFERENCES
+- **Diet type**: ${params.preferences.diet} (${dietInstruction})
+- **Ingredients to avoid**: ${params.preferences.excludedIngredients.join(', ') || 'None'}
+- **Cooking time**: ${params.preferences.cookingTime ? `${params.preferences.cookingTime} minutes` : 'Not specified'}
+- **Difficulty**: ${params.preferences.difficulty || 'Any'}
 
-  INGREDIENTS TO INCLUDE (MUST attempt to use these):
-  ${includedProductsList}
+### NUTRITIONAL GOALS (Per serving)
+${params.nutritionalGoals.minCalories ? `- Minimum calories: ${params.nutritionalGoals.minCalories}\n` : 'No minimum calories specified'}
+${params.nutritionalGoals.maxCalories ? `- Maximum calories: ${params.nutritionalGoals.maxCalories}\n` : 'No maximum calories specified'}
+${params.nutritionalGoals.minProtein ? `- Minimum protein: ${params.nutritionalGoals.minProtein}g\n` : 'No minimum protein specified'}
+${params.nutritionalGoals.maxCarbs ? `- Maximum carbs: ${params.nutritionalGoals.maxCarbs}g\n` : 'No maximum carbs specified'}
+${params.nutritionalGoals.maxFat ? `- Maximum fat: ${params.nutritionalGoals.maxFat}g` : 'No maximum fat specified'}
 
-  OTHER AVAILABLE PRODUCTS (use these to complete the recipe if needed):
-  ${availableProductsList}
+${
+  ingredientThemes.length > 0
+    ? `### MANDATORY INGREDIENT THEMES
+The recipe MUST include at least one product from the "AVAILABLE" list that matches each of the following themes:
+${ingredientThemes.map(theme => `- ${theme}`).join('\n')}
+\n`
+    : ''
+}
 
-  CALORIE REQUIREMENTS (VERY IMPORTANT):
-  - The recipe's nutritional info per portion MUST meet:
-    ${nutritionalGoals.minCalories ? `  - AT LEAST ${nutritionalGoals.minCalories} calories.\n` : ''}
-    ${nutritionalGoals.maxCalories ? `  - NO MORE THAN ${nutritionalGoals.maxCalories} calories.\n` : ''}
-  - If the initial ingredient list does not meet the calorie requirements, you MUST adjust quantities or add/remove ingredients (from the available list or common pantry staples compatible with the diet) to meet the target.
-  - Prioritize meeting the minimum calorie requirement if both min and max are set.
-  - The final "nutritionalInfo.calories" field in your JSON response MUST strictly adhere to these requirements.
+### AVAILABLE INGREDIENT DATABASE
+Here are the ingredients from the database you can use to build the recipe:
+${
+  formattedProducts.length > 0
+    ? formattedProducts
+    : 'No specific products available. Use common ingredients.'
+}
+\n
+${
+  formattedProducts.length === 0 && ingredientThemes.length > 0
+    ? '#### WARNING\nNo products found in the database. Generate a generic recipe using common ingredients that match the mandatory themes.\n'
+    : ''
+}
 
-  SPECIFIC INSTRUCTIONS:
-  1. Use ingredients from the 'INGREDIENTS TO INCLUDE' list preferentially.
-  2. Supplement with 'OTHER AVAILABLE PRODUCTS' or common compatible pantry items (like oil, spices, basic vegetables) as needed to create a complete and balanced recipe.
-  3. Specify EXACT quantities for each ingredient (e.g., in grams, ml, units). Avoid vague amounts.
-  4. Ensure the final recipe is strictly compatible with the diet: ${preferences.diet}. If unsure about an ingredient, do not include it.
-  5. Provide clear, step-by-step preparation instructions in Spanish.
-  6. Calculate the nutritional information per serving ACCURATELY based on the chosen ingredients and quantities. Double-check calorie compliance before responding.
+### REQUIRED RESPONSE FORMAT (VALID JSON)
+\`\`\`json
+{
+  "name": "string",
+  "description": "string",
+  "preparationTime": number,
+  "servings": number,
+  "difficulty": "easy" | "medium" | "hard",
+  "ingredients": [
+    {
+      "name": "string",
+      "quantity": number,
+      "unit": "string"
+    }
+  ],
+  "steps": ["string"],
+  "nutritionalInfo": {
+    "calories": number,
+    "protein": number,
+    "carbs": number,
+    "fat": number,
+    "sugar": number,
+    "saturatedFat": number,
+    "sodium": number,
+    "fiber": number
+  },
+  "dietaryTags": ["string"]
+}
+\`\`\`
 
-  RESPONSE FORMAT (JSON ONLY - NO extra text or markdown):
-  {
-    "name": "Recipe name (in Spanish)",
-    "description": "Short recipe description (in Spanish)",
-    "preparationTime": 30, // in minutes
-    "servings": 2,
-    "difficulty": "easy", // "easy", "medium", or "hard"
-    "ingredients": [
-      { "name": "ingredient name", "quantity": 100, "unit": "g" } // Example format
-    ],
-    "steps": ["Paso 1...", "Paso 2..."], // In Spanish
-    "nutritionalInfo": {
-      "calories": 500, // MUST meet calorie requirements
-      "protein": 30,
-      "carbs": 50,
-      "fat": 20,
-      "sugar": 10,       // Optional but preferred
-      "saturatedFat": 5, // Optional but preferred
-      "sodium": 800,     // Optional but preferred
-      "fiber": 8         // Optional but preferred
-    },
-    "dietaryTags": ["${preferences.diet}"] // Include the requested diet
-  }
+### STRICT RULES (MUST BE FOLLOWED)
+1.  **VALID JSON**: The response MUST be a single JSON code block. Do not include any text before or after.
+2.  **INGREDIENTS**:
+    - You MUST base the recipe on ingredients from the "AVAILABLE INGREDIENT DATABASE".
+     - You MUST satisfy all "MANDATORY INGREDIENT THEMES" by selecting at least one matching product from the list for each theme.
+    - All quantities and units are required.
+3.  **NUTRITION**:
+    - The generated nutritional information (calories, protein, etc.) MUST be a realistic calculation based on the provided ingredients and their quantities.
+    - It MUST meet the defined NUTRITIONAL GOALS.
+4.  **DIFFICULTY**: Must be "easy", "medium", or "hard".
+5.  **LANGUAGE**: Everything in English and in lowercase (except proper nouns if necessary).
+6.  **UNITS**: All ingredient "unit" fields MUST be expressed in "g" (grams) or "kg" (kilograms). Do NOT use "units", "ml", "tbsp", "tsp", or any other measure.
+
+### VALID EXAMPLE:
+\`\`\`json
+{
+  "name": "quinoa salad with chicken breast",
+  "description": "Fresh salad using quinoa and chicken breast from the list.",
+  "preparationTime": 25,
+  "servings": 2,
+  "difficulty": "easy",
+  "ingredients": [
+    {"name": "quinoa (Hacendado)", "quantity": 100, "unit": "g"},
+    {"name": "chicken breast (PolloFeliz)", "quantity": 150, "unit": "g"},
+    {"name": "tomato", "quantity": 1, "unit": "unit"},
+    {"name": "olive oil", "quantity": 1, "unit": "tablespoon"}
+  ],
+  "steps": ["Cook the quinoa", "Chop the vegetables", "Cook the chicken"],
+  "nutritionalInfo": {
+    "calories": 450,
+    "protein": 30,
+    "carbs": 40,
+    "fat": 20,
+    "fiber": 6
+  },
+  "dietaryTags": ["high protein", "gluten free"]
+}
+\`\`\`
+
+### FINAL INSTRUCTIONS
+Generate the recipe. Remember: your response must be ONLY the JSON block, and it must follow ALL the rules, especially using ingredients from the lists and meeting the nutritional goals.
   `;
   }
-
 }

@@ -11,11 +11,12 @@ export const generateRecipe = async (req: Request, res: Response) => {
       preferences: {
         diet: req.body.preferences?.diet || 'omnivore',
         excludedIngredients: req.body.preferences?.excludedIngredients || [],
-        preferredIngredients: req.body.preferences?.preferredIngredients || [],
+        ingredientThemes: req.body.preferences?.ingredientThemes || [],
         cookingTime: req.body.preferences?.cookingTime,
         difficulty: req.body.preferences?.difficulty,
       },
       nutritionalGoals: {
+        minCalories: req.body.nutritionalGoals?.minCalories,
         maxCalories: req.body.nutritionalGoals?.maxCalories,
         minProtein: req.body.nutritionalGoals?.minProtein,
         maxCarbs: req.body.nutritionalGoals?.maxCarbs,
@@ -48,7 +49,7 @@ export const getDefaultRecipeParams = (_req: Request, res: Response) => {
       preferences: {
         diet: 'omnivore',
         excludedIngredients: [],
-        preferredIngredients: [],
+        ingredientThemes: [],
       },
       nutritionalGoals: {
         minCalories: 0,

@@ -1,6 +1,5 @@
 import { Schema, model } from 'mongoose';
 
-// Interfaz para los datos del producto (la usamos para todo)
 export interface ProductData {
   name: string;
   brand?: string;

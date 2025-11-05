@@ -25,7 +25,7 @@ export const generateRecipe = async (req: Request, res: Response) => {
     };
 
     const recipe = await RecipeService.generateRecipe(params);
-    
+
     res.status(200).json({
       success: true,
       data: recipe,

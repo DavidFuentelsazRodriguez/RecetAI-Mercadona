@@ -4,12 +4,12 @@
  */
 export const ErrorMessages = {
   valueBelowMin: (metricWithUnit: string, limit: number, actual: number): string =>
-    `The recipe does not meet the minimum of ${limit}${metricWithUnit}. Total: ${actual.toFixed(
+    `The recipe does not meet the minimum of ${limit} ${metricWithUnit}. Total: ${actual.toFixed(
       2
     )}`,
 
   valueAboveMax: (metricWithUnit: string, limit: number, actual: number): string =>
-    `The recipe exceeds the maximum of ${limit}${metricWithUnit}. Total: ${actual.toFixed(
+    `The recipe exceeds the maximum of ${limit} ${metricWithUnit}. Total: ${actual.toFixed(
       2
     )}`,
 

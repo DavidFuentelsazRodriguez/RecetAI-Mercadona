@@ -6,7 +6,6 @@ export class RecipeValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'RecipeValidationError';
-    // Keep the appropriate stack trace (optional, good for debugging)
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, RecipeValidationError);
     }

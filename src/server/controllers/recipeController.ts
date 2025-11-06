@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { RecipeService } from '../services/recipeService';
+import { RecipeService } from '../services/recipe/recipeService';
 import { RecipeGenerationParams } from '../types/recipe.types';
 
 /**

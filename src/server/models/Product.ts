@@ -1,20 +1,23 @@
 import { Schema, model } from 'mongoose';
 
+type NutritionalInfo = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  saturatedFat?: number;
+  sodium?: number;
+  servingQuantity?: number;
+  servingUnit?: string;
+};
+
 export interface ProductData {
   name: string;
   brand?: string;
   imageUrl?: string;
-  nutritionalInfo: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber?: number;
-    sugar?: number;
-    saturatedFat?: number;
-    sodium?: number;
-  };
-  isMercadona: boolean;
+  nutritionalInfo: NutritionalInfo;
   lastUpdated: Date;
 }
 
@@ -30,8 +33,9 @@ const ProductSchema = new Schema<ProductData>({
     fiber: { type: Number },
     sugar: { type: Number },
     saturatedFat: { type: Number },
+    servingQuantity: { type: Number },
+    servingUnit: { type: String },
   },
-  isMercadona: { type: Boolean, required: true, default: true },
   lastUpdated: { type: Date, default: Date.now },
 });
 

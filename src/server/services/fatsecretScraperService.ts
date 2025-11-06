@@ -33,6 +33,22 @@ const extractNutritionInfo = ($: cheerio.CheerioAPI): any | null => {
     return null;
   }
 
+  // Extract serving size information
+  const servingSizeText = nutritionContainer.find('.serving_size.black.serving_size_value').text().trim();
+  if (servingSizeText) {
+    // Extract the numeric value and unit (e.g., "100 g" -> quantity=100, unit="g")
+    const servingMatch = servingSizeText.match(/(\d+(?:[.,]\d+)?)\s*(\D*)/);
+    if (servingMatch) {
+      const quantity = parseFloat(servingMatch[1].replace(',', '.'));
+      const unit = servingMatch[2].trim();
+      
+      if (!isNaN(quantity)) {
+        nutritionData.servingQuantity = quantity;
+        nutritionData.servingUnit = unit || 'g'; // Default to grams if no unit specified
+      }
+    }
+  };
+
   // Get all nutrient divs within the container
   const nutrients = nutritionContainer.find('.nutrient.left.w1');
 
@@ -263,7 +279,6 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
               name: product.name,
               brand: 'Mercadona',
               nutritionalInfo: nutrition,
-              isMercadona: true,
               lastUpdated: new Date(),
             };
 

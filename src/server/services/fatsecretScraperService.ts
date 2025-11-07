@@ -25,111 +25,23 @@ const extractNutritionInfo = ($: cheerio.CheerioAPI): any | null => {
   };
 
   let foundBasicNutrition = false;
-  
-  // Get the nutrition facts container
+
   const nutritionContainer = $('.nutrition_facts.eu');
 
   if (nutritionContainer.length === 0) {
     return null;
   }
 
-  // Extract serving size information
-  const servingSizeText = nutritionContainer.find('.serving_size.black.serving_size_value').text().trim();
-  if (servingSizeText) {
-    // Extract the numeric value and unit (e.g., "100 g" -> quantity=100, unit="g")
-    const servingMatch = servingSizeText.match(/(\d+(?:[.,]\d+)?)\s*(\D*)/);
-    if (servingMatch) {
-      const quantity = parseFloat(servingMatch[1].replace(',', '.'));
-      const unit = servingMatch[2].trim();
-      
-      if (!isNaN(quantity)) {
-        nutritionData.servingQuantity = quantity;
-        nutritionData.servingUnit = unit || 'g'; // Default to grams if no unit specified
-      }
-    }
-  };
+  extractServingSizeText(nutritionContainer, nutritionData);
 
-  // Get all nutrient divs within the container
   const nutrients = nutritionContainer.find('.nutrient.left.w1');
 
   if (nutrients.length === 0) {
     return null;
   }
 
-  // Process each nutrient label
-  nutrients.each((i, element) => {
-    const $label = $(element);
-    const label = $label.text().trim().toLowerCase();
-    
-    // The value is in the next sibling with class tRight w2
-    const $value = $label.next('.tRight.w2');
-    const value = $value.text().trim();
-    
-    if (value && label) {
-      
-      // Check for specific nutrients
-      if (label.includes('energía') || label.includes('energia')) {
-        // First try to get kcal value
-        const kcalMatch = value.match(/(\d+(?:[.,]\d+)?)\s*kcal/i);
-        if (kcalMatch) {
-          nutritionData.calories = parseFloat(kcalMatch[1].replace(',', '.'));
-          foundBasicNutrition = true;
-        } else {
-          // If no kcal found, try kj and convert to kcal (1 kcal = 4.184 kj)
-          const kjMatch = value.match(/(\d+(?:[.,]\d+)?)\s*kj/i);
-          if (kjMatch) {
-            const kj = parseFloat(kjMatch[1].replace(',', '.'));
-            nutritionData.calories = Math.round((kj / 4.184) * 10) / 10;
-            foundBasicNutrition = true;
-          }
-        }
-      } 
-      else if (label.includes('proteína') || label.includes('proteinas') || label.includes('proteina')) {
-        const protein = parseNutritionValue(value);
-        if (protein !== undefined) {
-          nutritionData.protein = protein;
-          foundBasicNutrition = true;
-        }
-      } 
-      else if (label.includes('carbohidrato')) {
-        const carbs = parseNutritionValue(value);
-        if (carbs !== undefined) {
-          nutritionData.carbs = carbs;
-          foundBasicNutrition = true;
-        }
-      } 
-      else if (label.includes('grasa') && !label.includes('saturada')) {
-        const fat = parseNutritionValue(value);
-        if (fat !== undefined) {
-          nutritionData.fat = fat;
-          foundBasicNutrition = true;
-        }
-      }
-      else if (label.includes('grasa saturada')) {
-        const saturatedFat = parseNutritionValue(value);
-        if (saturatedFat !== undefined) {
-          nutritionData.saturatedFat = saturatedFat;
-        }
-      }
-      else if (label.includes('azúcar') || label.includes('azucar')) {
-        const sugar = parseNutritionValue(value);
-        if (sugar !== undefined) {
-          nutritionData.sugar = sugar;
-        }
-      }
-      else if (label.includes('fibra')) {
-        const fiber = parseNutritionValue(value);
-        if (fiber !== undefined) {
-          nutritionData.fiber = fiber;
-        }
-      }
-      else if (label.includes('sal') || label.includes('sodio')) {
-        const sodium = parseNutritionValue(value);
-        if (sodium !== undefined) {
-          nutritionData.sodium = sodium;
-        }
-      }
-    }
+  nutrients.each((_i, element) => {
+    foundBasicNutrition = processNutritionLabel($, element, nutritionData, foundBasicNutrition);
   });
 
   return foundBasicNutrition ? nutritionData : null
@@ -305,3 +217,103 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
     return allProducts;
   }
 };
+
+/**
+ * Processes a nutrition label element and its value, and updates the nutritionData object if a match is found.
+ * @param {cheerio.CheerioAPI} $ - The cheerio object to parse the HTML with.
+ * @param {any} element - The nutrition label element to process.
+ * @param {any} nutritionData - The object to update with the extracted nutrition data.
+ * @param {boolean} foundBasicNutrition - Whether basic nutrition data (calories, protein, carbs, fat) has already been found.
+ * @returns {boolean} Whether basic nutrition data has been found.
+ */
+function processNutritionLabel($: cheerio.CheerioAPI, element: any, nutritionData: any, foundBasicNutrition: boolean): boolean {
+  const $label = $(element);
+  const label = $label.text().trim().toLowerCase();
+
+  // The value is in the next sibling with class tRight w2
+  const $value = $label.next('.tRight.w2');
+  const value = $value.text().trim();
+
+  if (value && label) {
+
+    // Check for specific nutrients
+    if (label.includes('energía') || label.includes('energia')) {
+      const kcalMatch = value.match(/(\d+(?:[.,]\d+)?)\s*kcal/i);
+      if (kcalMatch) {
+        nutritionData.calories = parseFloat(kcalMatch[1].replace(',', '.'));
+        foundBasicNutrition = true;
+      } else {
+        // If no kcal found, try kj and convert to kcal (1 kcal = 4.184 kj)
+        const kjMatch = value.match(/(\d+(?:[.,]\d+)?)\s*kj/i);
+        if (kjMatch) {
+          const kj = parseFloat(kjMatch[1].replace(',', '.'));
+          nutritionData.calories = Math.round((kj / 4.184) * 10) / 10;
+          foundBasicNutrition = true;
+        }
+      }
+    }
+    else if (label.includes('proteína') || label.includes('proteinas') || label.includes('proteina')) {
+      const protein = parseNutritionValue(value);
+      if (protein !== undefined) {
+        nutritionData.protein = protein;
+        foundBasicNutrition = true;
+      }
+    }
+    else if (label.includes('carbohidrato')) {
+      const carbs = parseNutritionValue(value);
+      if (carbs !== undefined) {
+        nutritionData.carbs = carbs;
+        foundBasicNutrition = true;
+      }
+    }
+    else if (label.includes('grasa') && !label.includes('saturada')) {
+      const fat = parseNutritionValue(value);
+      if (fat !== undefined) {
+        nutritionData.fat = fat;
+        foundBasicNutrition = true;
+      }
+    }
+    else if (label.includes('grasa saturada')) {
+      const saturatedFat = parseNutritionValue(value);
+      if (saturatedFat !== undefined) {
+        nutritionData.saturatedFat = saturatedFat;
+      }
+    }
+    else if (label.includes('azúcar') || label.includes('azucar')) {
+      const sugar = parseNutritionValue(value);
+      if (sugar !== undefined) {
+        nutritionData.sugar = sugar;
+      }
+    }
+    else if (label.includes('fibra')) {
+      const fiber = parseNutritionValue(value);
+      if (fiber !== undefined) {
+        nutritionData.fiber = fiber;
+      }
+    }
+    else if (label.includes('sal') || label.includes('sodio')) {
+      const sodium = parseNutritionValue(value);
+      if (sodium !== undefined) {
+        nutritionData.sodium = sodium;
+      }
+    }
+  }
+  return foundBasicNutrition;
+}
+
+function extractServingSizeText(nutritionContainer: any, nutritionData: any) {
+  const servingSizeText = nutritionContainer.find('.serving_size.black.serving_size_value').text().trim();
+  if (servingSizeText) {
+    // Extract the numeric value and unit (e.g., "100 g" -> quantity=100, unit="g")
+    const servingMatch = servingSizeText.match(/(\d+(?:[.,]\d+)?)\s*(\D*)/);
+    if (servingMatch) {
+      const quantity = parseFloat(servingMatch[1].replace(',', '.'));
+      const unit = servingMatch[2].trim();
+
+      if (!isNaN(quantity)) {
+        nutritionData.servingQuantity = quantity;
+        nutritionData.servingUnit = unit || 'g'; // Default to grams if no unit specified
+      }
+    }
+  };
+}

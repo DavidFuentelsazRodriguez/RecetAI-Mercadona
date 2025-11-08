@@ -12,6 +12,7 @@ import { RecipeValidationError } from '../../errors/recipeErrors';
 import { RecipePromptBuilder } from './recipePromptBuilder';
 import { z } from 'zod';
 import objectHash from 'object-hash';
+import { ThemeProduct } from '@/server/types/product.ingredientThemes';
 
 export class RecipeService {
   private static readonly MAX_RETRIES = 2;
@@ -66,9 +67,9 @@ export class RecipeService {
       throw new RecipeValidationError('Failed to generate a valid recipe after several attempts.');
     }
     const ingredientThemes = params.preferences.ingredientThemes;
-    const products = await this.fetchRelevantProducts(ingredientThemes);
+    const {products, themesNotFound} = await this.fetchRelevantProducts(ingredientThemes);
 
-    const originalPrompt = RecipePromptBuilder.buildPrompt(params, products, ingredientThemes);
+    const originalPrompt = RecipePromptBuilder.buildPrompt(params, products, ingredientThemes, themesNotFound);
     let rawApiResponseText: string | undefined;
 
     try {
@@ -112,16 +113,18 @@ export class RecipeService {
    * @param ingredientThemes An array of ingredient themes to match against product names.
    * @returns A promise that resolves to an array of product data objects.
    */
-  private static async fetchRelevantProducts(ingredientThemes: string[]): Promise<ProductData[]> {
+  private static async fetchRelevantProducts(ingredientThemes: string[]): Promise<{products: ProductData[], themesNotFound: string[]}> {
     try {
       const query = this.buildProductQuery(ingredientThemes);
 
       const themeProducts = await Product.find(query).limit(this.PRODUCT_FETCH_LIMIT).lean();
 
+      const themesNotFound = getNotFoundThemes(ingredientThemes, themeProducts);
+
       const remainingLimit = this.PRODUCT_FETCH_LIMIT - themeProducts.length;
 
       if (remainingLimit <= 0) {
-        return themeProducts;
+        return {products: themeProducts, themesNotFound};
       }
 
       const excludeIds = themeProducts.map(p => p._id);
@@ -132,10 +135,10 @@ export class RecipeService {
         .limit(remainingLimit)
         .lean();
 
-      return [...themeProducts, ...additionalProducts];
+      return {products: [...themeProducts, ...additionalProducts], themesNotFound};
     } catch (error) {
       console.error('Error fetching products:', error);
-      return [];
+      return {products: [], themesNotFound: ingredientThemes};
     }
   }
 
@@ -154,7 +157,6 @@ export class RecipeService {
 
     return query;
   }
-
 
   private static async generateRecipeWithCorrection(
     params: RecipeGenerationParams,
@@ -185,3 +187,20 @@ export class RecipeService {
     return objectHash(params, { algorithm: 'sha1' });
   }
 }
+
+function getNotFoundThemes(ingredientThemes: string[], themeProducts: ThemeProduct[]) {
+  const foundThemes = new Set<string>();
+  if (ingredientThemes.length > 0) {
+    themeProducts.forEach(p => {
+      const productNameLower = p.name.toLowerCase();
+      ingredientThemes.forEach(theme => {
+        if (productNameLower.includes(theme.toLowerCase())) {
+          foundThemes.add(theme.toLowerCase());
+        }
+      });
+    });
+  }
+
+  return ingredientThemes.filter(t => !foundThemes.has(t.toLowerCase()));
+}
+

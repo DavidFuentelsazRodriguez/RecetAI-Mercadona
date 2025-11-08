@@ -55,10 +55,6 @@ export function validateNutritionalRequirements(
   allProducts: ProductData[],
   params: RecipeGenerationParams
 ) {
-  console.log(
-    'DEBUG: Validando receta con los siguientes parámetros:',
-    JSON.stringify(params, null, 2) // El 'JSON.stringify' lo formatea bonito
-  );
   const { ingredientThemes } = params.preferences;
   validateIngredientThemes(ingredientThemes, recipe);
 

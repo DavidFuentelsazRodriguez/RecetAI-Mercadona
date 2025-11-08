@@ -89,24 +89,27 @@ export class RecipePromptBuilder {
     Generate the recipe. Remember: your response must be ONLY the JSON block, and it must follow ALL the rules, especially using ingredients from the lists and meeting the nutritional goals.
     `;
 
+  
   /**
    * Builds a prompt for the AI model to generate a recipe.
-   * The prompt includes the recipe generation instructions, dietary preferences, nutritional goals, mandatory ingredient themes, and available ingredients.
-   * @param params The recipe generation parameters, including the dietary preferences and nutritional goals.
-   * @param products An array of products from the database.
-   * @param ingredientThemes An array of mandatory ingredient themes.
+   * The prompt includes sections for dietary preferences, nutritional goals, ingredient themes, available ingredients, and static instructions.
+   * @param params The recipe generation parameters.
+   * @param products The available products from the database.
+   * @param ingredientThemes The ingredient themes to match against product names.
+   * @param themesNotFound The ingredient themes that were not found in the database.
    * @returns A string containing the prompt for the AI model.
    */
   public static buildPrompt(
     params: RecipeGenerationParams,
     products: ProductData[],
-    ingredientThemes: string[]
+    ingredientThemes: string[],
+    themesNotFound: string[]
   ): string {
     const { preferences, nutritionalGoals } = params;
 
     const dietSection = this.buildDietaryPreferencesSection(preferences);
     const nutritionSection = this.buildNutritionalGoalsSection(nutritionalGoals);
-    const themesSection = this.buildIngredientThemesSection(ingredientThemes);
+    const themesSection = this.buildIngredientThemesSection(ingredientThemes, themesNotFound);
     const ingredientsSection = this.buildAvailableIngredientsSection(products, ingredientThemes);
 
     const promptParts = [
@@ -133,7 +136,7 @@ export class RecipePromptBuilder {
   public static buildCorrectionPrompt(
     error: Error,
     invalidResponse?: string,
-    originalPrompt?: string
+    originalPrompt?: string,
   ): string {
     let errorDetails = '';
     if (error instanceof z.ZodError) {
@@ -204,18 +207,35 @@ Please review your calculations and ingredient list. You MUST provide ONLY the c
   `.trim();
   }
 
-  private static buildIngredientThemesSection(ingredientThemes: string[]): string {
-    if (ingredientThemes.length === 0) {
-      return '';
+  private static buildIngredientThemesSection(
+    allThemes: string[],
+    themesNotFound: string[]
+  ): string {
+    if (allThemes.length === 0) {
+      return ''; 
     }
 
-    const themesList = ingredientThemes.map(theme => `- ${theme}`).join('\n');
+    const themesFound = allThemes.filter(
+      t => !themesNotFound.find(notFound => notFound.toLowerCase() === t.toLowerCase())
+    );
 
-    return `
-  ### MANDATORY INGREDIENT THEMES
-  The recipe MUST include at least one product from the "AVAILABLE" list that matches each of the following themes:
-  ${themesList}
-  `.trim();
+    let section = '### MANDATORY INGREDIENT THEMES\n';
+
+    if (themesFound.length > 0) {
+      section +=
+        '**From Database:** You MUST include at least one product from the "AVAILABLE" list for each of these themes:\n';
+      section += themesFound.map(theme => `- ${theme}`).join('\n') + '\n';
+    }
+
+    if (themesNotFound.length > 0) {
+      section +=
+        '\n**Generic Ingredients:** The following themes were NOT found in the database. You MUST add them to the recipe as a "generic" ingredient (e.g., "lechuga", "tomate").\n';
+      section +=
+        'You MUST also **estimate their nutritional info** and include it in the total `nutritionalInfo` calculation to meet the goals.\n';
+      section += themesNotFound.map(theme => `- ${theme} (generic)`).join('\n');
+    }
+
+    return section.trim();
   }
 
   private static buildAvailableIngredientsSection(

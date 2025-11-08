@@ -38,6 +38,7 @@
     "express": "^5.1.0",
     "mongoose": "^8.19.1",
     "next": "^15.5.4",
+    "object-hash": "^3.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.1.12"
@@ -48,6 +49,7 @@
     "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/mongoose": "^5.11.96",
+    "@types/object-hash": "^3.0.6",
     "@typescript-eslint/eslint-plugin": "^8.46.0",
     "@typescript-eslint/parser": "^8.46.0",
     "eslint": "^9.39.1",

@@ -113,7 +113,7 @@ export class RecipeService {
    * @returns A MongoDB query object.
    */
   private static buildProductQuery(themes: string[]): Record<string, unknown> {
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (themes && themes.length > 0) {
       query.name = { $regex: themes.join('|'), $options: 'i' };
@@ -142,6 +142,7 @@ export class RecipeService {
       console.log(`Successful auto-correction on attempt ${retryCount}!`);
       return validatedRecipe;
     } catch (finalError) {
+      console.error('Final error:', finalError);
       return this.generateRecipe(params, retryCount);
     }
   }

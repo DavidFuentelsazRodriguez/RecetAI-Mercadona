@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { ProductData } from '../models/Product';
@@ -168,11 +169,8 @@ const hasNextPage = async (currentPage: number): Promise<boolean> => {
  */
 export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]> => {
   const allProducts: ProductData[] = [];
-  let totalProcessed = 0;
   let currentPage = 1;
   let hasMorePages = true;
-  let totalPagesProcessed = 0;
-  let totalProductsFound = 0;
 
   try {
     while (hasMorePages) {
@@ -194,20 +192,15 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
               lastUpdated: new Date(),
             };
 
-            allProducts.push(productData);
-            totalProcessed++;
-          }
+            allProducts.push(productData);          }
         } catch (error) {
           console.error(`❌ Error processing product: ${product?.name}`, error);
         }
       }
 
-      totalProductsFound += products.length;
-
       hasMorePages = await hasNextPage(currentPage);
       if (hasMorePages) {
         currentPage++;
-        totalPagesProcessed++;
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }

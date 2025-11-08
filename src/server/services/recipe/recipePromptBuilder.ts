@@ -219,7 +219,7 @@ Please review your calculations and ingredient list. You MUST provide ONLY the c
   }
 
   private static buildAvailableIngredientsSection(
-    products: any[],
+    products: ProductData[],
     ingredientThemes: string[]
   ): string {
     const formattedProducts = this.formatProducts(products);

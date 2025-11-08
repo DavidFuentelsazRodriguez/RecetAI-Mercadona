@@ -67,7 +67,7 @@ export const syncProducts = async () => {
  */
 export const getProducts = async (category?: string, search?: string, page = 1, limit = 20) => {
   try {
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (category) {
       query.category = { $regex: category, $options: 'i' };

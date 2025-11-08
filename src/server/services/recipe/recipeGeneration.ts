@@ -1,7 +1,8 @@
 import { gemini } from '../../config/gemini';
 import { RecipeSuggestion, RecipeGenerationParams, Ingredient } from '../../types/recipe.types';
 import { RecipeValidationError, GeminiApiError } from '../../errors/recipeErrors';
-import { ErrorMessages} from '../../utils/validation';
+import { ErrorMessages } from '../../utils/validation';
+import { ProductData } from '../../models/Product';
 
 /**
  * Creates a chat session with the Gemini model.
@@ -24,7 +25,7 @@ export function extractJsonResponse(responseText: string) {
     let jsonString = (jsonMatch[1] || jsonMatch[0] || '').trim();
 
     if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {
-      const jsonInText = jsonString.match(/[\{\[].*[\}\]]/s);
+      const jsonInText = jsonString.match(/[{[].*[}\]]/s);
       if (jsonInText) {
         jsonString = jsonInText[0];
       }
@@ -33,7 +34,7 @@ export function extractJsonResponse(responseText: string) {
     const parsed = JSON.parse(jsonString);
 
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed[0]; 
+      return parsed[0];
     }
 
     return parsed;
@@ -51,21 +52,21 @@ export function extractJsonResponse(responseText: string) {
  */
 export function validateNutritionalRequirements(
   recipe: RecipeSuggestion,
-  allProducts: any[],
+  allProducts: ProductData[],
   params: RecipeGenerationParams
 ) {
   console.log(
-  'DEBUG: Validando receta con los siguientes parámetros:', 
-  JSON.stringify(params, null, 2) // El 'JSON.stringify' lo formatea bonito
-);
+    'DEBUG: Validando receta con los siguientes parámetros:',
+    JSON.stringify(params, null, 2) // El 'JSON.stringify' lo formatea bonito
+  );
   const { ingredientThemes } = params.preferences;
   validateIngredientThemes(ingredientThemes, recipe);
 
   const { minCalories, maxCalories, minProtein, maxCarbs, maxFat } = params.nutritionalGoals;
-  
+
   const hasNutritionalGoals = minCalories || maxCalories || minProtein || maxCarbs || maxFat;
   if (!hasNutritionalGoals) {
-    return; 
+    return;
   }
 
   let totalCalories = 0;
@@ -84,18 +85,16 @@ export function validateNutritionalRequirements(
  */
 function validateIngredientThemes(ingredientThemes: string[], recipe: RecipeSuggestion) {
   if (ingredientThemes && ingredientThemes.length > 0) {
-
     for (const theme of ingredientThemes) {
       const themeLower = theme.toLowerCase();
 
       // Check if at least one ingredient contains the theme
-      const foundMatch = recipe.ingredients.some(ingredient => ingredient.name.toLowerCase().includes(themeLower)
+      const foundMatch = recipe.ingredients.some(ingredient =>
+        ingredient.name.toLowerCase().includes(themeLower)
       );
 
       if (!foundMatch) {
-        throw new RecipeValidationError(
-          ErrorMessages.missingTheme(theme)
-        );
+        throw new RecipeValidationError(ErrorMessages.missingTheme(theme));
       }
     }
   }
@@ -112,10 +111,7 @@ export function handleGenerationError(error: unknown, rawApiResponseText?: strin
     throw error;
   }
 
-  throw new GeminiApiError(
-    ErrorMessages.generationFailed(error),
-    rawApiResponseText
-  );
+  throw new GeminiApiError(ErrorMessages.generationFailed(error), rawApiResponseText);
 }
 
 /**
@@ -125,16 +121,18 @@ export function handleGenerationError(error: unknown, rawApiResponseText?: strin
  * @param maxCalories The maximum number of calories the generated recipe must have (optional)
  * @throws RecipeValidationError If the generated recipe does not meet the minimum or maximum calorie requirements
  */
-function validateCalorieRange(totalCalories: number, minCalories: number | undefined, maxCalories: number | undefined) {
-  if (minCalories &&
-    totalCalories < minCalories) {
+function validateCalorieRange(
+  totalCalories: number,
+  minCalories: number | undefined,
+  maxCalories: number | undefined
+) {
+  if (minCalories && totalCalories < minCalories) {
     throw new RecipeValidationError(
       ErrorMessages.valueBelowMin('calories', minCalories, totalCalories)
     );
   }
 
-  if (maxCalories &&
-    totalCalories > maxCalories) {
+  if (maxCalories && totalCalories > maxCalories) {
     throw new RecipeValidationError(
       ErrorMessages.valueAboveMax('calories', maxCalories, totalCalories)
     );
@@ -150,33 +148,30 @@ function validateCalorieRange(totalCalories: number, minCalories: number | undef
  * @throws RecipeValidationError If the generated recipe does not meet the minimum or maximum nutritional goals
  * @returns The total number of calories in the generated recipe
  */
-function validateNutritionFromAI(nutritionalInfo: RecipeSuggestion['nutritionalInfo'], goals: {
-  minProtein?: number;
-  maxCarbs?: number;
-  maxFat?: number;
-}): void {
-  const {protein, carbs, fat, calories} = nutritionalInfo;
+function validateNutritionFromAI(
+  nutritionalInfo: RecipeSuggestion['nutritionalInfo'],
+  goals: {
+    minProtein?: number;
+    maxCarbs?: number;
+    maxFat?: number;
+  }
+): void {
+  const { protein, carbs, fat } = nutritionalInfo;
   const { minProtein, maxCarbs, maxFat } = goals;
 
   if (minProtein && protein < minProtein) {
-    throw new RecipeValidationError(
-      ErrorMessages.valueBelowMin('g protein', minProtein, protein)
-    );
+    throw new RecipeValidationError(ErrorMessages.valueBelowMin('g protein', minProtein, protein));
   }
   if (maxCarbs && carbs > maxCarbs) {
-    throw new RecipeValidationError(
-      ErrorMessages.valueAboveMax('g carbs', maxCarbs, carbs)
-    );
+    throw new RecipeValidationError(ErrorMessages.valueAboveMax('g carbs', maxCarbs, carbs));
   }
 
   if (maxFat && fat > maxFat) {
-    throw new RecipeValidationError(
-      ErrorMessages.valueAboveMax('g fat', maxFat, fat)
-    );
+    throw new RecipeValidationError(ErrorMessages.valueAboveMax('g fat', maxFat, fat));
   }
 }
 
-function calculateCaloriesFromProducts(ingredients: Ingredient[], allProducts: any[]) {
+function calculateCaloriesFromProducts(ingredients: Ingredient[], allProducts: ProductData[]) {
   return ingredients.reduce((sum, ingredient) => {
     const product = findProductFromIngredient(allProducts, ingredient);
 
@@ -194,10 +189,10 @@ function getQuantityInGrams(ingredient: Ingredient) {
   return unit === 'kg' ? ingredient.quantity * 1000 : ingredient.quantity;
 }
 
-function findProductFromIngredient(allProducts: any[], ingredient: Ingredient) {
+function findProductFromIngredient(allProducts: ProductData[], ingredient: Ingredient) {
   const ingredientNameLower = ingredient.name.toLowerCase();
   return allProducts.find(
-    (p) =>
+    p =>
       p.name.toLowerCase().includes(ingredientNameLower) ||
       ingredientNameLower.includes(p.name.toLowerCase())
   );

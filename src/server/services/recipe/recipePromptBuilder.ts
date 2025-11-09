@@ -7,12 +7,13 @@ export class RecipePromptBuilder {
     vegan: 'Must be 100% plant-based, no animal products including honey, dairy, or eggs.',
     vegetarian: 'May include dairy and eggs but no meat, poultry, or fish.',
     keto: 'Must be very low in carbs (under 10g net carbs per serving).',
+    omnivore: 'May include all food groups including meat, dairy, and plant-based ingredients.',
     'gluten-free': 'Must not contain wheat, barley, rye, or any gluten sources.',
     'lactose-free': 'Must not contain lactose or dairy products.',
-    'high-protein': 'Must contain at least 25g of protein per serving.',
-    'low-carb': 'Must contain less than 30g of net carbs per serving.',
-    'high-fiber': 'Must contain at least 15g of fiber per serving.',
-    omnivore: 'May include all food groups including meat, dairy, and plant-based ingredients.',
+    'low-fat': 'Must be low in total fat, avoiding greasy or oily ingredients.',
+    'low-carb': 'Must be low in carbohydrates, avoiding sugar, bread, and pasta.',
+    'high-protein': 'Must be high in protein, prioritizing ingredients like chicken, tofu, or legumes.',
+    'high-fiber': 'Must be high in fiber, prioritizing rich fiber sources like oats, beans, or nuts.'
   };
 
   private static readonly STATIC_PROMPT_INSTRUCTIONS = `
@@ -186,20 +187,17 @@ Please review your calculations and ingredient list. You MUST provide ONLY the c
   public static buildNutritionalGoalsSection(
     nutritionalGoals: RecipeGenerationParams['nutritionalGoals']
   ): string {
-    const { minCalories, maxCalories, minProtein, maxCarbs, maxFat } = nutritionalGoals;
+    const { minCalories, maxCalories } = nutritionalGoals;
 
     const lines = [
       minCalories ? `- Minimum calories: ${minCalories}` : null,
       maxCalories ? `- Maximum calories: ${maxCalories}` : null,
-      minProtein ? `- Minimum protein: ${minProtein}g` : null,
-      maxCarbs ? `- Maximum carbs: ${maxCarbs}g` : null,
-      maxFat ? `- Maximum fat: ${maxFat}g` : null,
     ];
 
     const validLines = lines.filter(Boolean);
 
     const content =
-      validLines.length > 0 ? validLines.join('\n') : 'No specific nutritional goals specified.';
+      validLines.length > 0 ? validLines.join('\n') : 'No specific calorie goals specified.';
 
     return `
   ### NUTRITIONAL GOALS (Per serving)

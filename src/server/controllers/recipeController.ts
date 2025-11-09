@@ -54,9 +54,6 @@ export const getDefaultRecipeParams = (_req: Request, res: Response) => {
       nutritionalGoals: {
         minCalories: 0,
         maxCalories: 0,
-        minProtein: 0,
-        maxCarbs: 0,
-        maxFat: 0,
       },
     };
 

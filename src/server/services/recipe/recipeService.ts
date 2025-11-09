@@ -14,9 +14,16 @@ import { z } from 'zod';
 import objectHash from 'object-hash';
 import { ThemeProduct } from '@/server/types/product.ingredientThemes';
 
+const DIET_TO_GOALS_MAP: Record<string, { minProtein?: number; maxCarbs?: number; maxFat?: number }> = {
+  'low-fat': { maxFat: 15 },
+  'low-carb': { maxCarbs: 25 },
+  'high-protein': { minProtein: 30 },
+  'keto': { maxCarbs: 10, maxFat: 60 },
+};
+
 export class RecipeService {
   private static readonly MAX_RETRIES = 2;
-  private static readonly PRODUCT_FETCH_LIMIT = 100;
+  private static readonly PRODUCT_FETCH_LIMIT = 158;
 
   /**
    * Generates a recipe from the AI model, retrying up to {@link MAX_RETRIES} times if the AI model does not produce a valid recipe.
@@ -80,7 +87,22 @@ export class RecipeService {
       const rawRecipeObject = extractJsonResponse(rawApiResponseText);
       const validatedRecipe = RecipeSuggestionSchema.parse(rawRecipeObject);
 
-      validateNutritionalRequirements(validatedRecipe, products, params);
+      const internalValidationParams = JSON.parse(JSON.stringify(params));
+
+      const dietKey = params.preferences.diet.toLowerCase().trim();
+
+      // Search if the diet has nutritional goals rules
+      const dietGoal = DIET_TO_GOALS_MAP[dietKey];
+
+      if (dietGoal) {
+        /*
+         * Add the nutritional goals to the internal validation params
+         * This combines user nutritional goals with the nutritional goals of the diet
+         */
+        Object.assign(internalValidationParams.nutritionalGoals, dietGoal);
+      }
+
+      validateNutritionalRequirements(validatedRecipe, products, internalValidationParams);
 
       return validatedRecipe;
     } catch (error) {

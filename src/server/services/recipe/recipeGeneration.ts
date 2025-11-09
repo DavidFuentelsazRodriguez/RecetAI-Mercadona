@@ -1,5 +1,5 @@
 import { gemini } from '../../config/gemini';
-import { RecipeSuggestion, RecipeGenerationParams, Ingredient } from '../../types/recipe.types';
+import { RecipeSuggestion, RecipeGenerationParams } from '../../types/recipe.types';
 import { RecipeValidationError, GeminiApiError } from '../../errors/recipeErrors';
 import { ErrorMessages } from '../../utils/validation';
 import { ProductData } from '../../models/Product';
@@ -65,12 +65,7 @@ export function validateNutritionalRequirements(
     return;
   }
 
-  let totalCalories = 0;
-
-  totalCalories = calculateCaloriesFromProducts(recipe.ingredients, allProducts);
   validateNutritionFromAI(recipe.nutritionalInfo, params.nutritionalGoals);
-
-  validateCalorieRange(totalCalories, minCalories, maxCalories);
 }
 
 /**
@@ -111,31 +106,6 @@ export function handleGenerationError(error: unknown, rawApiResponseText?: strin
 }
 
 /**
- * Validates that the total calories of a generated recipe is within the specified range.
- * @param totalCalories The total calories of the generated recipe
- * @param minCalories The minimum number of calories the generated recipe must have (optional)
- * @param maxCalories The maximum number of calories the generated recipe must have (optional)
- * @throws RecipeValidationError If the generated recipe does not meet the minimum or maximum calorie requirements
- */
-function validateCalorieRange(
-  totalCalories: number,
-  minCalories: number | undefined,
-  maxCalories: number | undefined
-) {
-  if (minCalories && totalCalories < minCalories) {
-    throw new RecipeValidationError(
-      ErrorMessages.valueBelowMin('calories', minCalories, totalCalories)
-    );
-  }
-
-  if (maxCalories && totalCalories > maxCalories) {
-    throw new RecipeValidationError(
-      ErrorMessages.valueAboveMax('calories', maxCalories, totalCalories)
-    );
-  }
-}
-
-/**
  * Validates that a generated recipe meets the specified nutritional goals.
  * @param recipe The generated recipe
  * @param minProtein The minimum number of grams of protein the generated recipe must have (optional)
@@ -146,14 +116,18 @@ function validateCalorieRange(
  */
 function validateNutritionFromAI(
   nutritionalInfo: RecipeSuggestion['nutritionalInfo'],
-  goals: {
-    minProtein?: number;
-    maxCarbs?: number;
-    maxFat?: number;
-  }
+  goals: RecipeGenerationParams['nutritionalGoals']
 ): void {
-  const { protein, carbs, fat } = nutritionalInfo;
-  const { minProtein, maxCarbs, maxFat } = goals;
+  const { calories, protein, carbs, fat } = nutritionalInfo;
+  const { minCalories, maxCalories, minProtein, maxCarbs, maxFat } = goals;
+
+  if (minCalories && calories < minCalories) {
+    throw new RecipeValidationError(ErrorMessages.valueBelowMin('calories', minCalories, calories));
+  }
+
+  if (maxCalories && calories > maxCalories) {
+    throw new RecipeValidationError(ErrorMessages.valueAboveMax('calories', maxCalories, calories));
+  }
 
   if (minProtein && protein < minProtein) {
     throw new RecipeValidationError(ErrorMessages.valueBelowMin('g protein', minProtein, protein));
@@ -165,31 +139,4 @@ function validateNutritionFromAI(
   if (maxFat && fat > maxFat) {
     throw new RecipeValidationError(ErrorMessages.valueAboveMax('g fat', maxFat, fat));
   }
-}
-
-function calculateCaloriesFromProducts(ingredients: Ingredient[], allProducts: ProductData[]) {
-  return ingredients.reduce((sum, ingredient) => {
-    const product = findProductFromIngredient(allProducts, ingredient);
-
-    if (!product?.nutritionalInfo?.calories) {
-      return sum;
-    }
-
-    const quantityInGrams = getQuantityInGrams(ingredient);
-    return sum + product.nutritionalInfo.calories * (quantityInGrams / 100);
-  }, 0);
-}
-
-function getQuantityInGrams(ingredient: Ingredient) {
-  const unit = ingredient.unit.trim().toLowerCase();
-  return unit === 'kg' ? ingredient.quantity * 1000 : ingredient.quantity;
-}
-
-function findProductFromIngredient(allProducts: ProductData[], ingredient: Ingredient) {
-  const ingredientNameLower = ingredient.name.toLowerCase();
-  return allProducts.find(
-    p =>
-      p.name.toLowerCase().includes(ingredientNameLower) ||
-      ingredientNameLower.includes(p.name.toLowerCase())
-  );
 }

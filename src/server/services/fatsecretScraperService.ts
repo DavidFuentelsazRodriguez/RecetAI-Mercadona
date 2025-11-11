@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { ProductData } from '../models/Product';
+import { ProductData } from '../models/product';
 
 const BASE_URL = 'https://www.fatsecret.es/calor%C3%ADas-nutrici%C3%B3n/search';
 const SEARCH_QUERY = 'Mercadona';

@@ -1,5 +1,5 @@
-import { Product } from '../models/Product';
-import { ProductData } from '../models/Product';
+import { Product } from '../models/product';
+import { ProductData } from '../models/product';
 import { getMercadonaProductsFromFatSecret } from './fatsecretScraperService';
 
 /**

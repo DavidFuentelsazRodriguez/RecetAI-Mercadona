@@ -1,18 +1,16 @@
 import { RecipeSuggestion, RecipeGenerationParams } from '../../types/recipe.types';
-import { Product, type ProductData } from '../../models/Product';
+import { Product, type ProductData } from '../../models/product';
 import { RecipeCache } from '../../models/RecipeCache';
-import {
-  createGeminiChat,
-  extractJsonResponse,
-  validateNutritionalRequirements,
-  handleGenerationError,
-} from './recipeGeneration';
+
+import { createGeminiChat, extractJsonResponse } from '../geminiService';
 import { RecipeSuggestionSchema } from '../../types/recipe.schemas';
 import { RecipeValidationError } from '../../errors/recipeErrors';
 import { RecipePromptBuilder } from './recipePromptBuilder';
 import { z } from 'zod';
 import objectHash from 'object-hash';
 import { ThemeProduct } from '@/server/types/product.ingredientThemes';
+import { RecipeValidatorService } from './recipeValidatorService';
+import { handleGenerationError } from '../../errors/recipeErrors';
 
 const DIET_TO_GOALS_MAP: Record<string, { minProtein?: number; maxCarbs?: number; maxFat?: number }> = {
   'low-fat': { maxFat: 15 },
@@ -70,7 +68,6 @@ export class RecipeService {
     retryCount: number = 0
   ): Promise<RecipeSuggestion> {
     if (retryCount > this.MAX_RETRIES) {
-      console.error('Recipe generation failed after MAX_RETRIES');
       throw new RecipeValidationError('Failed to generate a valid recipe after several attempts.');
     }
     const ingredientThemes = params.preferences.ingredientThemes;
@@ -102,7 +99,7 @@ export class RecipeService {
         Object.assign(internalValidationParams.nutritionalGoals, dietGoal);
       }
 
-      validateNutritionalRequirements(validatedRecipe, products, internalValidationParams);
+     RecipeValidatorService.validate(validatedRecipe, internalValidationParams);
 
       return validatedRecipe;
     } catch (error) {
@@ -180,6 +177,17 @@ export class RecipeService {
     return query;
   }
 
+  /**
+   * Generates a recipe from the AI model with a correction prompt.
+   * This function is used when the AI model generates an invalid recipe.
+   * The correction prompt is built by including the error details, the invalid response snippet, and the original instructions.
+   * If the AI model still fails to generate a valid recipe after the correction prompt, the function will retry generating the recipe with the original prompt.
+   * @param params The recipe generation parameters.
+   * @param products The available products from the database.
+   * @param correctionPrompt The correction prompt for the AI model.
+   * @param retryCount The current retry count.
+   * @returns A promise that resolves to a valid recipe suggestion.
+   */
   private static async generateRecipeWithCorrection(
     params: RecipeGenerationParams,
     products: ProductData[],
@@ -195,9 +203,8 @@ export class RecipeService {
       const rawRecipeObject = extractJsonResponse(rawApiResponseText);
       const validatedRecipe = RecipeSuggestionSchema.parse(rawRecipeObject);
 
-      validateNutritionalRequirements(validatedRecipe, products, params);
+      RecipeValidatorService.validate(validatedRecipe, params);
 
-      console.log(`Successful auto-correction on attempt ${retryCount}!`);
       return validatedRecipe;
     } catch (finalError) {
       console.error('Final error:', finalError);

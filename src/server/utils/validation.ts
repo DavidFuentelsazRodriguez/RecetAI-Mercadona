@@ -21,5 +21,5 @@ export const ErrorMessages = {
     return `Failed to generate the recipe: ${message}`;
   },
   jsonParseFailed: (error: unknown) =>
-  `Error al parsear la respuesta de Gemini como JSON. ${error instanceof Error ? error.message : ''}`,
+  `Error parsing Gemini's response as JSON. ${error instanceof Error ? error.message : ''}`,
 };

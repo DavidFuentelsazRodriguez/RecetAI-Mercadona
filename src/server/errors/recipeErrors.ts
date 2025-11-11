@@ -1,3 +1,5 @@
+import { ErrorMessages } from "../utils/validation";
+
 /**
  * Error thrown when the validation structure or content
  * of a generated recipe by the AI fails.
@@ -27,4 +29,19 @@ export class GeminiApiError extends Error {
       Error.captureStackTrace(this, GeminiApiError);
     }
   }
+}
+
+
+/**
+ * Handles errors during recipe generation.
+ * @param error The error that occurred
+ * @param rawApiResponseText The raw API response text (optional)
+ * @throws GeminiApiError If the error is not a RecipeValidationError or GeminiApiError
+ */
+export function handleGenerationError(error: unknown, rawApiResponseText?: string): never {
+  if (error instanceof RecipeValidationError || error instanceof GeminiApiError) {
+    throw error;
+  }
+
+  throw new GeminiApiError(ErrorMessages.generationFailed(error), rawApiResponseText);
 }

@@ -3,7 +3,7 @@ import { Product, type ProductData } from '../../models/product';
 import { RecipeCache } from '../../models/RecipeCache';
 
 import { createGeminiChat, extractJsonResponse } from '../geminiService';
-import { RecipeSuggestionSchema } from '../../types/recipe.schemas';
+import { RecipeSuggestionSchema } from '../../schemas/recipe.schemas';
 import { RecipeValidationError } from '../../errors/recipeErrors';
 import { RecipePromptBuilder } from './recipePromptBuilder';
 import { z } from 'zod';

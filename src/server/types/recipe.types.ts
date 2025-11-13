@@ -31,7 +31,7 @@ export interface RecipeSuggestion {
 
 export interface RecipeGenerationParams {
   preferences: {
-    diet: 'vegan' | 'vegetarian' | 'omnivore' | 'gluten-free' | 'lactose-free' | 'keto' | 'low-carb' | 'high-protein' | 'high-fiber';
+    diet: 'vegan' | 'vegetarian' | 'omnivore' | 'gluten-free' | 'lactose-free' | 'keto' | 'low-carb' | 'high-protein' | 'high-fiber' | 'low-fat';
     excludedIngredients: string[];
     ingredientThemes: string[];
     cookingTime?: number; //in minutes

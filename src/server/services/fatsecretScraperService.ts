@@ -192,7 +192,8 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
               lastUpdated: new Date(),
             };
 
-            allProducts.push(productData);          }
+            allProducts.push(productData);          
+          }
         } catch (error) {
           console.error(`❌ Error processing product: ${product?.name}`, error);
         }

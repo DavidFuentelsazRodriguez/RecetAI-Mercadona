@@ -1,7 +1,7 @@
 # 🍳 RecetAI Mercadona
 
-Generador inteligente de recetas basado en productos reales del Mercadona.  
-Utiliza IA para crear platos personalizados según las preferencias nutricionales y dietéticas del usuario.
+Generador inteligente de recetas basado en productos reales del Mercadona.
+Utiliza la IA de **Google Gemini** para crear platos personalizados que se ajustan estrictamente a tus objetivos nutricionales y dietéticos, validando cada ingrediente contra una base de datos real.
 
 ---
 
@@ -9,128 +9,139 @@ Utiliza IA para crear platos personalizados según las preferencias nutricionale
 
 ### 🎯 Propósito
 
-**RecetAI Mercadona** es una aplicación que genera recetas personalizadas a partir de los productos disponibles en Mercadona.  
-Su objetivo es ayudar a los usuarios a descubrir ideas de platos que se adapten a sus **preferencias nutricionales**, **restricciones dietéticas** y **gustos personales**, utilizando productos reales y accesibles.
-
-La aplicación combina datos nutricionales obtenidos del catálogo de Mercadona con un modelo de **inteligencia artificial generativa**, capaz de proponer recetas completas (ingredientes, pasos de preparación y valores nutricionales estimados) en cuestión de segundos.
-
----
-
-### 🧑‍💻 Público objetivo
-
-- Personas que quieren **alimentarse mejor sin complicarse**.
-- Usuarios que hacen la compra en Mercadona y buscan **optimizar sus menús** con los productos que ya consumen.
-- Deportistas o personas con objetivos nutricionales específicos.
-- Desarrolladores interesados en ver cómo se integra scraping, lógica de recomendación e IA en un proyecto real.
+**RecetAI Mercadona** resuelve el problema de "qué cocinar hoy" alineando la creatividad de la IA con la realidad del supermercado.
+A diferencia de otros generadores genéricos, este sistema asegura que:
+1. Los ingredientes existen realmente en Mercadona (gracias al scraping de FatSecret).
+2. Los valores nutricionales (calorías, macros) son cálculos matemáticos reales, no alucinaciones de la IA.
+3. Las recetas cumplen estrictamente con dietas (Keto, Vegana, Alta en Proteína, etc.).
 
 ---
 
-### 🚀 Objetivo del MVP
+## 🚀 Características Técnicas Destacadas
 
-La primera versión (MVP) de RecetAI Mercadona se centra en la **generación de recetas personalizadas** a partir de los parámetros definidos por el usuario.
+### 🧠 Inteligencia Artificial (Gemini 2.0 Flash)
+Utilizamos el modelo `gemini-2.0-flash` para una generación rápida y precisa. El sistema incluye:
+- **Prompt Engineering Avanzado:** Construcción dinámica de prompts basándose en los productos disponibles.
+- **Sistema de Autocorrección:** Si la IA genera un JSON inválido o incumple una regla nutricional, el sistema reintenta automáticamente enviando el error a la IA para que se corrija.
 
-**Características principales del MVP:**
+### 🛡️ Validación y Seguridad (Zod)
+Cada receta generada pasa por un doble filtro:
+1. **Validación de Esquema:** `Zod` asegura que la respuesta de la IA tenga la estructura JSON exacta requerida.
+2. **Validación de Negocio:** Un servicio dedicado (`RecipeValidatorService`) verifica matemáticamente que la suma de calorías y macros cumpla con los límites establecidos por el usuario.
 
-- Entrada de datos desde un formulario simple:
-  - Objetivo nutricional (por ejemplo: “alta en carbohidratos y proteínas”).
-  - Preferencia dietética (vegano, vegetariano, omnívoro, sin gluten…).
-  - Ingredientes preferidos (opcional).
-- Generación de recetas mediante IA, usando productos reales del Mercadona.
-- Visualización de la receta con:
-  - Nombre del plato.
-  - Lista de ingredientes.
-  - Pasos de preparación.
-  - Estimación de macronutrientes.
-- Botón **“Generar otra receta”** para obtener nuevas opciones con los mismos criterios.
+### ⚡ Rendimiento y Caché
+Para optimizar costes y latencia, se implementa un sistema de caché en MongoDB (`RecipeCache`). Si un usuario pide una receta con los mismos parámetros que una solicitud anterior, se sirve instantáneamente desde la base de datos sin llamar a la API de Google.
+
+### 🕷️ Sincronización de Productos
+Un scraper robusto (basado en `Cheerio` y `Axios`) extrae información nutricional detallada de productos Hacendado desde FatSecret España, normalizando datos y gestionando la paginación y errores de red automáticamente.
 
 ---
 
-## 🧩 Componentes
+## 🧩 Stack Tecnológico
 
-- **Frontend (React + TypeScript)**
-- **Backend (Node.js + Express)**
-- **Módulo IA (OpenAI)**
-- **Base de datos (MongoDB)**
-- **Scraper (Cheerio + Axios)**
-  - Extrae datos de productos de Mercadona desde FatSecret España
-  - Obtiene información nutricional detallada (22 campos)
-  - Sincronización automática con la base de datos
+- **Framework:** Next.js + TypeScript
+- **Backend:** Node.js + Express (Server Pattern)
+- **IA:** Google Generative AI SDK (Gemini)
+- **Base de Datos:** MongoDB + Mongoose
+- **Validación:** Zod
+- **Scraping:** Axios + Cheerio
+- **Testing:** Jest + Supertest (Cobertura de Unit y Integration tests)
+
+---
 
 ## 🏗️ Estructura del Proyecto
 
-```
-recetai-mercadona/
-├── .github/               # Configuración de GitHub (CI/CD, issues templates, etc.)
-├── .vscode/              # Configuración específica de VS Code
-├── public/               # Archivos estáticos (imágenes, fuentes, etc.)
-├── src/
-│   ├── components/       # Componentes reutilizables de React
-│   ├── pages/            # Rutas de Next.js
-│   │   └── api/          # Endpoints de la API (Next.js API Routes)
-│   ├── server/           # Código del servidor
-│   │   ├── config/       # Configuraciones (base de datos, etc.)
-│   │   ├── controllers/  # Controladores para las rutas de la API
-│   │   ├── models/       # Modelos de la base de datos (Mongoose)
-│   │   ├── routes/       # Definición de rutas de la API
-│   │   ├── services/     # Lógica de negocio y servicios
-│   │   │   ├── __tests__/  # Pruebas unitarias de servicios
-│   │   └── index.ts      # Punto de entrada del servidor
-│   ├── styles/           # Estilos globales y módulos CSS
-│   └── types/            # Tipos de TypeScript
-├── .env.example         # Plantilla de variables de entorno
-├── .eslintrc.json       # Configuración de ESLint
-├── .gitignore           # Archivos ignorados por Git
-├── .prettierrc          # Configuración de Prettier
-├── .jest.config.js      # Configuración de Jest
-├── package.json         # Dependencias y scripts
-├── README.md            # Este archivo
-└── tsconfig.json       # Configuración de TypeScript
+```text
+src/
+├── server/
+│   ├── config/       # Conexión a DB y cliente Gemini
+│   ├── controllers/  # Lógica de entrada de endpoints
+│   ├── models/       # Schemas Mongoose (Product, Recipe, RecipeCache)
+│   ├── services/     # Lógica de negocio compleja
+│   │   ├── recipe/   # Lógica específica de generación de recetas
+│   │   │   ├── recipeService.ts        # Orquestador principal
+│   │   │   ├── recipePromptBuilder.ts  # Construcción de prompts
+│   │   │   └── recipeValidatorService.ts # Reglas de negocio
+│   │   ├── geminiService.ts            # Comunicación con IA
+│   │   └── fatsecretScraperService.ts  # Extracción de datos
+│   ├── utils/        # Validaciones y mensajes de error
+│   └── routes/       # Definición de endpoints API
+└── types/            # Interfaces TypeScript compartidas
 ```
 
-## ⚙️ Instalación y ejecución
+## ⚙️ Instalación y Configuración
 
-### 1️⃣ Clonar el repositorio
+### 1️⃣ Prerrequisitos
+
+- Node.js (v18 o superior)
+
+- MongoDB ejecutándose localmente o en Atlas.
+
+- Una API Key de Google AI Studio (Gemini).
+
+### 2️⃣ Clonar el repositorio
 
 ```bash
 git clone https://github.com/tuusuario/recetai-mercadona.git
 cd recetai-mercadona
 ```
 
-### 2️⃣ Instalar dependencias
+### 3️⃣ Instalar dependencias
 
 ```bash
 npm install
 ```
 
-### 3️⃣ Iniciar el entorno de desarrollo
+### 4️⃣ Ejecutar
+
+#### Modo desarrollo
 
 ```bash
-npm install
+npm run dev
 ```
 
-### 4️⃣ Variables de entorno (.env)
+#### Servidor Backend (Standalone)
+
+```bash
+npm run server:dev
+```
+
+###  Variables de entorno (.env)
 
 Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
 
 ```
-#PORT
 PORT=5000
-
-# Node Environment
 NODE_ENV=development
-
-# MongoDB
-MONGODB_URI=<tu_uri_aqui>
-
+MONGODB_URI=mongodb://localhost:27017/recetAI
+GOOGLE_API_KEY=tu_api_key_de_gemini_aqui
 ```
 
-### 5️⃣ Flujo de sincronización
+## 🧪 Testing
+El proyecto cuenta con una suite de tests exhaustiva utilizando Jest. Se cubren servicios críticos como el Scraper, la generación de Prompts y la lógica de validación.
+Para ejecutar los test:
+
+```bash
+# Ejecutar todos los tests
+npm test
+
+# Ejecutar tests con reporte de cobertura
+npm run test:coverage
+
+# Ejecutar en modo vigilancia (watch)
+npm run test:watch
+```
+
+## 🔄 Flujo de sincronización
 
 La aplicación incluye un sistema de sincronización que permite mantener actualizada la base de datos de productos de Mercadona. El proceso se realiza directamente desde la interfaz de usuario de la aplicación:
 
-1. **Iniciar sincronización**: Desde el panel de administración, haz clic en "Sincronizar productos".
-2. **Procesamiento**: La aplicación se conectará a FatSecret España y comenzará a extraer la información de los productos.
-3. **Actualización**: Los productos se actualizarán automáticamente en la base de datos.
-4. **Confirmación**: Recibirás una notificación cuando la sincronización haya finalizado, mostrando un resumen de los cambios realizados.
+1. Endpoint: POST /api/products/sync
+2. El servicio se conecta a FatSecret España.
+3. Itera sobre las páginas de resultados buscando productos "Hacendado" o "Mercadona".
+4. Entra al detalle de cada producto para extraer 22 puntos de datos nutricionales (incluyendo grasas saturadas, fibra, sodio, etc.).
+5. Utiliza bulkWrite de MongoDB para insertar o actualizar eficientemente cientos de productos.
 
-> **Nota**: La sincronización puede tardar varios minutos dependiendo de la cantidad de productos a actualizar.
+## 📝 Licencia
+Este proyecto está bajo la Licencia MIT.
+

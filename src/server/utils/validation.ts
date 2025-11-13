@@ -22,4 +22,16 @@ export const ErrorMessages = {
   },
   jsonParseFailed: (error: unknown) =>
   `Error parsing Gemini's response as JSON. ${error instanceof Error ? error.message : ''}`,
+ 
+  generationFailedAfterServeralAttempts: () =>
+  'Failed to generate a valid recipe after several attempts.',
+  
+  cacheReadFailed: (error: unknown) =>
+  `Failed to read from cache. ${error instanceof Error ? error.message : ''}`,
+
+  cacheWriteFailed: (error: unknown) =>
+  `Failed to write to cache. ${error instanceof Error ? error.message : ''}`,
+
+  fetchFailed: (error: unknown) =>
+  `Failed to fetch products. ${error instanceof Error ? error.message : ''}`,
 };

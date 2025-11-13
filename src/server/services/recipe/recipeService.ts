@@ -11,6 +11,7 @@ import objectHash from 'object-hash';
 import { ThemeProduct } from '@/server/types/product.ingredientThemes';
 import { RecipeValidatorService } from './recipeValidatorService';
 import { handleGenerationError } from '../../errors/recipeErrors';
+import { ErrorMessages } from '../../utils/validation';
 
 const DIET_TO_GOALS_MAP: Record<string, { minProtein?: number; maxCarbs?: number; maxFat?: number }> = {
   'low-fat': { maxFat: 15 },
@@ -68,7 +69,7 @@ export class RecipeService {
     retryCount: number = 0
   ): Promise<RecipeSuggestion> {
     if (retryCount > this.MAX_RETRIES) {
-      throw new RecipeValidationError('Failed to generate a valid recipe after several attempts.');
+      throw new RecipeValidationError(ErrorMessages.generationFailedAfterServeralAttempts());
     }
     const ingredientThemes = params.preferences.ingredientThemes;
     const {products, themesNotFound} = await this.fetchRelevantProducts(ingredientThemes);
@@ -104,8 +105,6 @@ export class RecipeService {
       return validatedRecipe;
     } catch (error) {
       if (error instanceof z.ZodError || error instanceof RecipeValidationError) {
-        console.warn(`Attempt ${retryCount + 1} failed. Retrying with automatic correction...`);
-        console.warn('Captured error:', error.message);
 
         const correctionPrompt = RecipePromptBuilder.buildCorrectionPrompt(
           error,

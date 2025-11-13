@@ -3,7 +3,7 @@ import { RecipeGenerationParams } from '../../types/recipe.types';
 import { z } from 'zod';
 
 export class RecipePromptBuilder {
-  private static readonly DIET_DESCRIPTIONS: Record<string, string> = {
+  private static readonly DIET_DESCRIPTIONS: Record<RecipeGenerationParams['preferences']['diet'], string> = {
     vegan: 'Must be 100% plant-based, no animal products including honey, dairy, or eggs.',
     vegetarian: 'May include dairy and eggs but no meat, poultry, or fish.',
     keto: 'Must be very low in carbs (under 10g net carbs per serving).',

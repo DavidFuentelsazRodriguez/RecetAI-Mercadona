@@ -2,49 +2,13 @@ import { Request, Response } from 'express';
 import * as productsService from '../services/productsService';
 
 /**
- * Cleans all existing Mercadona products from database
- */
-export const cleanMercadonaProducts = async (req: Request, res: Response) => {
-  try {
-    const result = await productsService.cleanMercadonaProducts();
-    res.status(200).json(result);
-  } catch (error) {
-    console.error('Error cleaning products:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to clean products',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-};
-
-/**
- * Fetches products from Mercadona API and stores them in the database
- */
-export const syncProducts = async (req: Request, res: Response) => {
-  try {
-    const result = await productsService.syncProducts();
-    res.status(200).json(result);
-  } catch (error) {
-    console.error('Error syncing products:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to sync products',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-};
-
-/**
  * Gets all products from the database
  */
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const { category, search, page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20 } = req.query;
 
     const result = await productsService.getProducts(
-      category as string | undefined,
-      search as string | undefined,
       Number(page),
       Number(limit)
     );
@@ -83,6 +47,40 @@ export const getProductById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+/**
+ * Fetches products from Mercadona API and stores them in the database
+ */
+export const syncProducts = async (req: Request, res: Response) => {
+  try {
+    const result = await productsService.syncProducts();
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error syncing products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to sync products',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+/**
+ * Cleans all existing Mercadona products from database
+ */
+export const cleanMercadonaProducts = async (req: Request, res: Response) => {
+  try {
+    const result = await productsService.cleanMercadonaProducts();
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error cleaning products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clean products',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }

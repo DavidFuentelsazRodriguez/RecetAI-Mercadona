@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
-    "server:dev": "nodemon --exec ts-node src/server/index.ts",
+    "server:dev": "nodemon",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
-export const IngredientSchema = z.object({
+const IngredientSchema = z.object({
   name: z.string().min(1, { error: "Ingredient name cannot be empty" }),
   quantity: z.number({ error: "Quantity must be a number" }),
   unit: z.string().min(1, { error: "Unit cannot be empty" }),
 });
 
-export const NutritionalInfoSchema = z.object({
+const NutritionalInfoSchema = z.object({
   calories: z.number({ error: "Calories must be a number" }).min(0, {error: "Calories must be greater or equal 0"}),
   protein: z.number({ error: "Protein must be a number" }).min(0, {error: "Protein must be greater or equal 0"}),
   carbs: z.number({ error: "Carbs must be a number" }).min(0, {error: "Carbs must be greater or equal 0"}),
@@ -29,5 +29,23 @@ export const RecipeSuggestionSchema = z.object({
   dietaryTags: z.array(z.string()), 
 });
 
+const PreferencesSchema = z.object({
+  diet: z.enum(['vegan', 'vegetarian', 'omnivore', 'gluten-free', 'lactose-free', 'keto', 'low-carb', 'high-protein', 'high-fiber', 'low-fat']).default('omnivore'),
+  excludedIngredients: z.array(z.string()).default([]),
+  ingredientThemes: z.array(z.string()).default([]),
+  cookingTime: z.number().int().positive().optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+})
 
+const NutritionalGoalsSchema = z.object({
+  minCalories: z.number().int().positive().optional(),
+  maxCalories: z.number().int().positive().optional(),
+})
+
+export const RecipeParamsSchema = z.object({
+  preferences: PreferencesSchema,
+  nutritionalGoals: NutritionalGoalsSchema,
+})
+
+export type ValidatedRecipeParams = z.infer<typeof RecipeParamsSchema>;
 export type ValidatedRecipeSuggestion = z.infer<typeof RecipeSuggestionSchema>;

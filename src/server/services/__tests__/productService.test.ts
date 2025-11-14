@@ -63,7 +63,7 @@ describe('ProductsService', () => {
       mockedProduct.countDocuments.mockResolvedValue(2);
 
       // Act
-      const result = await getProducts(undefined, undefined, 1, 20);
+      const result = await getProducts(1, 20);
 
       // Assert
       expect(result.success).toBe(true);
@@ -78,30 +78,6 @@ describe('ProductsService', () => {
       expect(mockSkip).toHaveBeenCalledWith(0); // Correct pagination
       expect(mockLimit).toHaveBeenCalledWith(20); // Correct Limit
       expect(mockedProduct.countDocuments).toHaveBeenCalledWith({}); // Empty query
-    });
-
-    it('should build the query correctly with search and category', async () => {
-      // Arrange
-      mockLean.mockResolvedValue([]);
-      mockedProduct.countDocuments.mockResolvedValue(0);
-
-      const category = 'Lácteos';
-      const search = 'Leche';
-
-      // Act
-      await getProducts(category, search, 1, 20);
-
-      // Assert
-      const expectedQuery = {
-        category: { $regex: category, $options: 'i' },
-        $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { brand: { $regex: search, $options: 'i' } },
-          { category: { $regex: search, $options: 'i' } },
-        ],
-      };
-      expect(mockedProduct.find).toHaveBeenCalledWith(expectedQuery);
-      expect(mockedProduct.countDocuments).toHaveBeenCalledWith(expectedQuery);
     });
   });
 

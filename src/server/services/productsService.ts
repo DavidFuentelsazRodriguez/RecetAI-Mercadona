@@ -59,27 +59,13 @@ export const syncProducts = async () => {
 
 /**
  * Gets all products with optional filtering and pagination
- * @param category Filter by category (optional)
- * @param search Search term (optional)
  * @param page Page number (default: 1)
  * @param limit Items per page (default: 20, max: 100)
  * @returns Object with products and pagination info
  */
-export const getProducts = async (category?: string, search?: string, page = 1, limit = 20) => {
+export const getProducts = async (page = 1, limit = 20) => {
   try {
     const query: Record<string, unknown> = {};
-
-    if (category) {
-      query.category = { $regex: category, $options: 'i' };
-    }
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { brand: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } },
-      ];
-    }
 
     const pageNum = parseInt(page.toString(), 10);
     const limitNum = Math.min(parseInt(limit.toString(), 10), 100);

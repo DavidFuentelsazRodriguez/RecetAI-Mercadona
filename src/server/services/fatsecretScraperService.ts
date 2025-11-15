@@ -2,6 +2,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { ProductData } from '../models/product';
+import logger from '../config/logger';
 
 const BASE_URL = 'https://www.fatsecret.es/calor%C3%ADas-nutrici%C3%B3n/search';
 const SEARCH_QUERY = 'Mercadona';
@@ -65,7 +66,7 @@ const getProductNutrition = async (productUrl: string): Promise<any | null> => {
     const $ = cheerio.load(response.data);
     return extractNutritionInfo($);
   } catch (error) {
-    console.error(`Error fetching nutrition data from ${productUrl}:`, error);
+    logger.error(`Error fetching nutrition data from ${productUrl}:`, error);
     return null;
   }
 };
@@ -104,7 +105,7 @@ const getProductsFromPage = async (page: number): Promise<any[]> => {
 
     return products;
   } catch (error) {
-    console.error(`Error fetching products from page ${page}:`, error);
+    logger.error(`Error fetching products from page ${page}:`, error);
     return [];
   }
 };
@@ -129,7 +130,7 @@ const hasNextPage = async (currentPage: number): Promise<boolean> => {
     });
     
     if (response.status === 404) {
-      console.log(`❌ Page ${currentPage + 1} does not exist (404)`);
+      logger.error(`Page ${currentPage + 1} does not exist (404)`);
       return false;
     }
 
@@ -149,11 +150,11 @@ const hasNextPage = async (currentPage: number): Promise<boolean> => {
     
   } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response) {
-      console.error(`❌ Error checking page ${currentPage + 1}: ${error.response.status} ${error.response.statusText}`);
+      logger.error(`Error checking page ${currentPage + 1}: ${error.response.status} ${error.response.statusText}`);
     } else if (error instanceof Error) {
-      console.error(`❌ Error checking page ${currentPage + 1}:`, error.message);
+      logger.error(`Error checking page ${currentPage + 1}:`, error.message);
     } else {
-      console.error(`❌ Unknown error checking page ${currentPage + 1}`);
+      logger.error(`Unknown error checking page ${currentPage + 1}`);
     }
     return false;
   }
@@ -195,7 +196,7 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
             allProducts.push(productData);          
           }
         } catch (error) {
-          console.error(`❌ Error processing product: ${product?.name}`, error);
+          logger.error(`Error processing product: ${product?.name}`, error);
         }
       }
 
@@ -207,7 +208,7 @@ export const getMercadonaProductsFromFatSecret = async (): Promise<ProductData[]
     }
     return allProducts;
   } catch (error) {
-    console.error('❌ Error in getMercadonaProductsFromFatSecret:', error);
+    logger.error('Error in getMercadonaProductsFromFatSecret:', error);
     return allProducts;
   }
 };

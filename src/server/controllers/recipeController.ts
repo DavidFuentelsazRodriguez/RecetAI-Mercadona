@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { RecipeService } from '../services/recipe/recipeService';
 import { RecipeParamsSchema } from '../schemas/recipe.schemas';
+import logger from '../config/logger';
 import { z } from 'zod';
 
 /**
@@ -17,7 +18,7 @@ export const generateRecipe = async (req: Request, res: Response) => {
       data: recipe,
     });
   } catch (error) {
-    console.error('Error generating recipe:', error);
+    logger.error('Error generating recipe:', error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,

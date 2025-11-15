@@ -1,6 +1,8 @@
 import { Product } from '../models/product';
 import { ProductData } from '../models/product';
 import { getMercadonaProductsFromFatSecret } from './fatsecretScraperService';
+import logger from '../config/logger';
+import { ErrorMessages } from '../utils/validation';
 
 /**
  * Cleans all existing Mercadona products from database
@@ -15,8 +17,8 @@ export const cleanMercadonaProducts = async () => {
       deletedCount: result.deletedCount,
     };
   } catch (error) {
-    console.error('Error cleaning products:', error);
-    throw new Error('Failed to clean products');
+    logger.error('Error cleaning products:', error);
+    throw new Error(ErrorMessages.failedToCleanProducts());
   }
 };
 
@@ -52,8 +54,8 @@ export const syncProducts = async () => {
       stats: result,
     };
   } catch (error) {
-    console.error('Error syncing products:', error);
-    throw new Error('Failed to sync products');
+    logger.error('Error syncing products:', error);
+    throw new Error(ErrorMessages.failedToSyncProducts());
   }
 };
 
@@ -85,8 +87,8 @@ export const getProducts = async (page = 1, limit = 20) => {
       data: products,
     };
   } catch (error) {
-    console.error('Error fetching products:', error);
-    throw new Error('Failed to fetch products');
+    logger.error('Error fetching products:', error);
+    throw new Error(ErrorMessages.failedToGetProducts());
   }
 };
 
@@ -100,7 +102,7 @@ export const getProductById = async (id: string) => {
     const product = await Product.findById(id);
     return product;
   } catch (error) {
-    console.error('Error fetching product:', error);
-    throw new Error('Failed to fetch product');
+    logger.error('Error fetching product:', error);
+    throw new Error(ErrorMessages.failedToGetProductById());
   }
 };

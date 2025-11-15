@@ -34,4 +34,26 @@ export const ErrorMessages = {
 
   fetchFailed: (error: unknown) =>
   `Failed to fetch products. ${error instanceof Error ? error.message : ''}`,
+
+  mongoURIUndefined: () =>
+  'MONGODB_URI is not defined in environment variables',
+
+  mongoConnectionError: (error: unknown) =>
+  `Error connecting to MongoDB: ${error instanceof Error ? error.message : ''}`,
+
+  mongoConnectionClosedError: (error: unknown) =>
+  `Error closing MongoDB connection: ${error instanceof Error ? error.message : ''}`,
+
+  failedToCleanProducts: () =>
+  'Failed to clean products',
+
+  failedToSyncProducts: () =>
+  'Failed to sync products',
+
+  failedToGetProducts: () =>
+  'Failed to get products',
+
+  failedToGetProductById: () =>
+  'Failed to get product by id',
+  
 };

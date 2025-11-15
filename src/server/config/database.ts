@@ -1,66 +1,61 @@
 import mongoose from 'mongoose';
 import { Product } from '../models/product';
 import { Recipe } from '../models/recipe';
+import logger from './logger';
 import dotenv from 'dotenv';
+import { ErrorMessages } from '../utils/validation';
 
 dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Enable debug mode in development
 if (process.env.NODE_ENV === 'development') {
   mongoose.set('debug', true);
 }
 
-/**
- * Establishes a connection to the MongoDB database
- */
 export const connectDB = async (): Promise<void> => {
   try {
     if (!MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined in environment variables');
+      throw new Error(ErrorMessages.mongoURIUndefined());
     }
 
     const conn = await mongoose.connect(MONGODB_URI, {
       dbName: 'recetAI',
     });
-    console.log(`🛢️  MongoDB connected: ${conn.connection.host}`);
+    logger.info(`🛢️  MongoDB connected: ${conn.connection.host}`);
 
-    // Register models
     mongoose.model('Product', Product.schema);
     mongoose.model('Recipe', Recipe.schema);
 
-    console.log('📦 Database models registered');
+    logger.info('📦 Database models registered');
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error}`);
+    logger.error(ErrorMessages.mongoConnectionError(error));
     process.exit(1);
   }
 };
 
-// Export models and connection for easy access
 export const db = {
   Product,
   Recipe,
   connection: mongoose.connection,
 };
 
-// Handle connection events
 db.connection.on('error', error => {
-  console.error('MongoDB connection error:', error);
+  logger.error(ErrorMessages.mongoConnectionError(error));
 });
 
 db.connection.on('disconnected', () => {
-  console.warn('MongoDB disconnected');
+  logger.warn('MongoDB disconnected');
 });
 
-// Handle application close
+
 process.on('SIGINT', async () => {
   try {
     await db.connection.close();
-    console.log('MongoDB connection closed through app termination');
+    logger.info('MongoDB connection closed through app termination');
     process.exit(0);
   } catch (error) {
-    console.error('Error closing MongoDB connection:', error);
+    logger.error(ErrorMessages.mongoConnectionClosedError(error));
     process.exit(1);
   }
 });

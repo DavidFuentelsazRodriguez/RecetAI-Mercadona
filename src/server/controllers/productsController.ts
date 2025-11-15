@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as productsService from '../services/productsService';
+import logger from '../config/logger';
 
 /**
  * Gets all products from the database
@@ -15,7 +16,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error fetching products:', error);
+    logger.error('Error fetching products:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch products',
@@ -43,7 +44,7 @@ export const getProductById = async (req: Request, res: Response) => {
       data: product,
     });
   } catch (error) {
-    console.error('Error fetching product:', error);
+    logger.error('Error fetching product:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product',
@@ -60,7 +61,7 @@ export const syncProducts = async (req: Request, res: Response) => {
     const result = await productsService.syncProducts();
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error syncing products:', error);
+    logger.error('Error syncing products:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to sync products',
@@ -77,7 +78,7 @@ export const cleanMercadonaProducts = async (req: Request, res: Response) => {
     const result = await productsService.cleanMercadonaProducts();
     res.status(200).json(result);
   } catch (error) {
-    console.error('Error cleaning products:', error);
+    logger.error('Error cleaning products:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to clean products',

@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   backend:
     container_name: recetai-backend-dev
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.dev
     ports:

@@ -30,7 +30,7 @@ export const connectDB = async (): Promise<void> => {
     logger.info('📦 Database models registered');
   } catch (error) {
     logger.error(ErrorMessages.mongoConnectionError(error));
-    process.exit(1);
+    throw error;
   }
 };
 

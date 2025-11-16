@@ -2,6 +2,8 @@ import winston, {Logform} from 'winston';
 
 const { combine, timestamp, printf, colorize, align } = winston.format;
 
+const isTestEnv = process.env.NODE_ENV === 'test';
+
 const textFormat = combine(
   colorize({ all: true }),
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -21,6 +23,7 @@ const logger = winston.createLogger({
     new winston.transports.Console(),
   ],
   exitOnError: false,
+  silent: isTestEnv,
 });
 
 export default logger;

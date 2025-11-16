@@ -1,5 +1,5 @@
 import { RecipePromptBuilder } from '../../services/recipe/recipePromptBuilder';
-import { ProductData } from '../../models/product';
+import { ProductData } from '../../models/Product';
 import { RecipeGenerationParams } from '../../types/recipe.types';
 import { z } from 'zod';
 import { TEST_CONSTANTS } from './__fixtures__/testConstants';

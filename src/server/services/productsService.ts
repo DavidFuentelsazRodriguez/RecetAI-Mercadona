@@ -1,5 +1,4 @@
-import { Product } from '../models/product';
-import { ProductData } from '../models/product';
+import { Product, ProductData } from '../models/Product';
 import { getMercadonaProductsFromFatSecret } from './fatsecretScraperService';
 import logger from '../config/logger';
 import { ErrorMessages } from '../utils/validation';

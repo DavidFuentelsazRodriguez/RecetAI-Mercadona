@@ -1,4 +1,4 @@
-import { ProductData } from '../../models/product';
+import { ProductData } from '../../models/Product';
 import { RecipeGenerationParams } from '../../types/recipe.types';
 import { z } from 'zod';
 

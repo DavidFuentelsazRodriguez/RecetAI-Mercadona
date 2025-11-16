@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import { Product } from '../models/product';
-import { Recipe } from '../models/recipe';
+import { Product } from '../models/Product';
+import { Recipe } from '../models/Recipe';
 import logger from './logger';
 import dotenv from 'dotenv';
 import { ErrorMessages } from '../utils/validation';

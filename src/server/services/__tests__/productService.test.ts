@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Product } from '../../models/product';
+import { ErrorMessages } from '../../utils/validation';
+import { Product } from '../../models/Product';
 import { getMercadonaProductsFromFatSecret } from '../fatsecretScraperService';
 import { 
   getProducts, 
@@ -19,7 +20,7 @@ const mockLimit = jest.fn(() => ({ lean: mockLean }));
 const mockSkip = jest.fn(() => ({ limit: mockLimit }));
 const mockSort = jest.fn(() => ({ skip: mockSkip }));
 
-jest.mock('../../models/product', () => ({
+jest.mock('../../models/Product', () => ({
   Product: {
     // We mock the static methods used by the service 
     deleteMany: jest.fn(),
@@ -107,7 +108,7 @@ describe('ProductsService', () => {
 
       // Act and Assert
       await expect(cleanMercadonaProducts()).rejects.toThrow(
-        'Failed to clean products'
+        ErrorMessages.failedToCleanProducts()
       );
     });
   });
@@ -179,7 +180,7 @@ describe('ProductsService', () => {
       mockedGetMercadonaProducts.mockRejectedValue(mockError);
 
       // Act and Assert
-      await expect(syncProducts()).rejects.toThrow('Failed to sync products');
+      await expect(syncProducts()).rejects.toThrow(ErrorMessages.failedToSyncProducts());
 
       // Verify bulkWrite was not even attempted
       expect(mockedProduct.bulkWrite).not.toHaveBeenCalled();
@@ -194,7 +195,7 @@ describe('ProductsService', () => {
       mockedProduct.bulkWrite.mockRejectedValue(mockError);
 
       // Act and Assert
-      await expect(syncProducts()).rejects.toThrow('Failed to sync products');
+      await expect(syncProducts()).rejects.toThrow(ErrorMessages.failedToSyncProducts());
     });
   });
 
@@ -241,7 +242,7 @@ describe('ProductsService', () => {
 
       // Act and Assert
       await expect(getProductById('bad-id')).rejects.toThrow(
-        'Failed to fetch product'
+        ErrorMessages.failedToGetProductById()
       );
     });
   });

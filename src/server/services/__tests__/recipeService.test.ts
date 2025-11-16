@@ -23,7 +23,7 @@ const mockHandleGenerationError = jest.fn(() => {
     throw new Error('MOCK_HANDLE_ERROR');
 });
 
-jest.mock('../../models/product', () => ({
+jest.mock('../../models/Product', () => ({
   Product: {
     find: mockFind,
   },

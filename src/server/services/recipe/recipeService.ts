@@ -1,5 +1,5 @@
 import { RecipeSuggestion, RecipeGenerationParams } from '../../types/recipe.types';
-import { Product, type ProductData } from '../../models/product';
+import { Product, type ProductData } from '../../models/Product';
 import { RecipeCache } from '../../models/RecipeCache';
 
 import { createGeminiChat, extractJsonResponse } from '../geminiService';

@@ -1,12 +1,19 @@
 import rateLimit from 'express-rate-limit';
 import logger from './logger';
+import { NextFunction, Request, Response } from 'express';
 
+
+const dummyLimiter = (req: Request, res: Response, next: NextFunction) => {
+  next();
+};
+
+const isTestEnv = process.env.NODE_ENV === 'test';
 
 /**
  * Express rate limiter for recipe generation from AI
  * Limits to 10 requests per 5 minutes.
  */
-export const apiLimiter = rateLimit({
+export const apiLimiter = isTestEnv ? dummyLimiter : rateLimit({
   windowMs: 5 * 60 * 1000, 
   max: 10,
   message: { success: false, message: 'Too many requests, please wait.' },
@@ -20,7 +27,7 @@ export const apiLimiter = rateLimit({
  * Express rate limiter for scraper 
  * Limits to 2 requests per hour.
  */
-export const scraperLimiter = rateLimit({
+export const scraperLimiter = isTestEnv ? dummyLimiter : rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 2,
   message: { success: false, message: 'The synchronization can only be executed twice per hour.' },

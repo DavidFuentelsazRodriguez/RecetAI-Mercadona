@@ -12,6 +12,7 @@ import { ThemeProduct } from '@/server/types/product.ingredientThemes';
 import { RecipeValidatorService } from './recipeValidatorService';
 import { handleGenerationError } from '../../errors/recipeErrors';
 import { ErrorMessages } from '../../utils/validation';
+import logger from '../../config/logger';
 
 const DIET_TO_GOALS_MAP: Record<string, { minProtein?: number; maxCarbs?: number; maxFat?: number }> = {
   'low-fat': { maxFat: 15 },
@@ -40,7 +41,7 @@ export class RecipeService {
         return cachedRecipe.recipe;
       }
     } catch (cacheError) {
-      console.error('Error reading cache:', cacheError);
+      logger.error('Error reading cache:', cacheError);
     }
 
     const newRecipe = await this.generateRecipeFromAI(params, 0);
@@ -51,7 +52,7 @@ export class RecipeService {
         recipe: newRecipe,
       });
     } catch (cacheError) {
-      console.error('Error writing cache:', cacheError);
+      logger.error('Error writing cache:', cacheError);
     }
 
     return newRecipe;
@@ -90,7 +91,9 @@ export class RecipeService {
       const dietKey = params.preferences.diet.toLowerCase().trim();
 
       // Search if the diet has nutritional goals rules
-      const dietGoal = DIET_TO_GOALS_MAP[dietKey];
+      const dietGoal = Object.hasOwn(DIET_TO_GOALS_MAP, dietKey) 
+        ? DIET_TO_GOALS_MAP[dietKey as keyof typeof DIET_TO_GOALS_MAP] 
+        : undefined;
 
       if (dietGoal) {
         /*
@@ -155,7 +158,7 @@ export class RecipeService {
 
       return {products: [...themeProducts, ...additionalProducts], themesNotFound};
     } catch (error) {
-      console.error('Error fetching products:', error);
+      logger.error('Error fetching products:', error);
       return {products: [], themesNotFound: ingredientThemes};
     }
   }
@@ -206,7 +209,7 @@ export class RecipeService {
 
       return validatedRecipe;
     } catch (finalError) {
-      console.error('Final error:', finalError);
+      logger.error('Final error:', finalError);
       return this.generateRecipeFromAI(params, retryCount);
     }
   }

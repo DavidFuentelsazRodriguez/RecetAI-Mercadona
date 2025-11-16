@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', productsRouter);
 app.use('/api', recipesRouter);
 
-const startServer = async () => {
+export const startServer = async () => {
   try {
     await connectDB();
     app.listen(PORT, () => {
@@ -29,7 +29,5 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
-startServer();
 
 export default app;

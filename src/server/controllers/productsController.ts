@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as productsService from '../services/productsService';
+import { scrapingQueue } from '../config/queues';
 import logger from '../config/logger';
 
 /**
@@ -17,6 +18,7 @@ export const getProducts = async (req: Request, res: Response) => {
     res.status(200).json(result);
   } catch (error) {
     logger.error('Error fetching products:', error);
+
     res.status(500).json({
       success: false,
       message: 'Failed to fetch products',
@@ -58,10 +60,21 @@ export const getProductById = async (req: Request, res: Response) => {
  */
 export const syncProducts = async (req: Request, res: Response) => {
   try {
-    const result = await productsService.syncProducts();
-    res.status(200).json(result);
+    await scrapingQueue.add('sync-products-job', {}, {
+      jobId: 'singleton-sync',
+      removeOnComplete: true,
+      removeOnFail: true,
+    });
+
+    logger.info('Products sync started');
+
+    res.status(202).json({
+      success: true,
+      message: 'Products sync started in background',
+    });
   } catch (error) {
-    logger.error('Error syncing products:', error);
+    logger.error('Error queueing products sync:', error);
+
     res.status(500).json({
       success: false,
       message: 'Failed to sync products',
@@ -76,9 +89,11 @@ export const syncProducts = async (req: Request, res: Response) => {
 export const cleanMercadonaProducts = async (req: Request, res: Response) => {
   try {
     const result = await productsService.cleanMercadonaProducts();
+    
     res.status(200).json(result);
   } catch (error) {
     logger.error('Error cleaning products:', error);
+    
     res.status(500).json({
       success: false,
       message: 'Failed to clean products',

@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-unsafe-regex */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import * as cheerio from 'cheerio';

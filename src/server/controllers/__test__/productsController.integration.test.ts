@@ -1,14 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import request from 'supertest';
 import app from '../../index';
+import { scrapingQueue } from '../../config/queues';
 import * as productsService from '../../services/productsService';
 
 jest.mock('../../services/productsService');
+jest.mock('../../config/queues', () => ({
+  scrapingQueue: {
+    add: jest.fn(),
+  },
+  SCRAPER_QUEUE_NAME: 'mock-queue',
+  createScraperWorker: jest.fn(),
+}));
 
 const mockedProductsService = productsService as jest.Mocked<typeof productsService>;
+const mockedScrapingQueueAdd = scrapingQueue.add as jest.Mock;
 
 describe('Products Controller (Integration Tests)', () => {
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -29,7 +37,7 @@ describe('Products Controller (Integration Tests)', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.data[0].name).toBe('Leche');
-      
+
       expect(mockedProductsService.getProducts).toHaveBeenCalledWith(1, 20);
     });
 
@@ -85,24 +93,30 @@ describe('Products Controller (Integration Tests)', () => {
   });
 
   describe('POST /api/products/sync', () => {
-    it('should return 200 and sync results on success', async () => {
-      const mockSyncResult = { success: true, syncedCount: 150 };
-      mockedProductsService.syncProducts.mockResolvedValue(mockSyncResult as any);
+    it('should return 202 reponse and sync job started', async () => {
+      mockedScrapingQueueAdd.mockResolvedValue({ id: 'job-123' });
 
       const res = await request(app).post('/api/products/sync');
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.syncedCount).toBe(150);
-      expect(mockedProductsService.syncProducts).toHaveBeenCalledTimes(1);
+      expect(res.statusCode).toBe(202);
+      expect(res.body.message).toBe('Products sync started in background');
+
+      expect(mockedScrapingQueueAdd).toHaveBeenCalledTimes(1);
+      expect(mockedScrapingQueueAdd).toHaveBeenCalledWith(
+        'sync-products-job',
+        {},
+        expect.anything()
+      );
     });
 
     it('should return 500 if sync service fails', async () => {
-      mockedProductsService.syncProducts.mockRejectedValue(new Error('Scraper failed'));
+      mockedScrapingQueueAdd.mockRejectedValue(new Error('Redis connection failed'));
 
       const res = await request(app).post('/api/products/sync');
 
       expect(res.statusCode).toBe(500);
       expect(res.body.message).toBe('Failed to sync products');
+      expect(mockedScrapingQueueAdd).toHaveBeenCalledTimes(1);
     });
   });
 

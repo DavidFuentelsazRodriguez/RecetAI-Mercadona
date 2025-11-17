@@ -5,6 +5,13 @@ import { RecipeService } from '../../services/recipe/recipeService';
 import { RecipeParamsSchema } from '../../schemas/recipe.schemas';
 
 jest.mock('../../services/recipe/recipeService');
+jest.mock('../../config/queues', () => ({
+  scrapingQueue: {
+    add: jest.fn(),
+  },
+  SCRAPER_QUEUE_NAME: 'mock-queue',
+  createScraperWorker: jest.fn(),
+}));
 
 const mockedRecipeService = RecipeService as jest.Mocked<typeof RecipeService>;
 

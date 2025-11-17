@@ -49,9 +49,6 @@ yarn-error.log*
 logs
 *.log
 
-# Variables de entorno de ejemplo (sin datos sensibles)
-.env.example
-
 # Archivos de configuración local
 config/local.*.json
 

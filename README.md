@@ -1,147 +1,161 @@
 # 🍳 RecetAI Mercadona
 
-Generador inteligente de recetas basado en productos reales del Mercadona.
-Utiliza la IA de **Google Gemini** para crear platos personalizados que se ajustan estrictamente a tus objetivos nutricionales y dietéticos, validando cada ingrediente contra una base de datos real.
+An intelligent recipe generator based on real Mercadona products.
+It uses **Google Gemini** AI to create personalized dishes that strictly adhere to your nutritional and dietary goals, validating every ingredient against a real database.
 
 ---
 
-## 🧭 Visión general
+## 🧭 Overview
 
-### 🎯 Propósito
+### 🎯 Purpose
 
-**RecetAI Mercadona** resuelve el problema de "qué cocinar hoy" alineando la creatividad de la IA con la realidad del supermercado.
-A diferencia de otros generadores genéricos, este sistema asegura que:
-1. Los ingredientes existen realmente en Mercadona (gracias al scraping de FatSecret).
-2. Los valores nutricionales (calorías, macros) son cálculos matemáticos reales, no alucinaciones de la IA.
-3. Las recetas cumplen estrictamente con dietas (Keto, Vegana, Alta en Proteína, etc.).
-
----
-
-## 🚀 Características Técnicas Destacadas
-
-### 🧠 Inteligencia Artificial (Gemini 2.0 Flash)
-Utilizamos el modelo `gemini-2.0-flash` para una generación rápida y precisa. El sistema incluye:
-- **Prompt Engineering Avanzado:** Construcción dinámica de prompts basándose en los productos disponibles.
-- **Sistema de Autocorrección:** Si la IA genera un JSON inválido o incumple una regla nutricional, el sistema reintenta automáticamente enviando el error a la IA para que se corrija.
-
-### 🛡️ Validación y Seguridad (Zod)
-Cada receta generada pasa por un doble filtro:
-1. **Validación de Esquema:** `Zod` asegura que la respuesta de la IA tenga la estructura JSON exacta requerida.
-2. **Validación de Negocio:** Un servicio dedicado (`RecipeValidatorService`) verifica matemáticamente que la suma de calorías y macros cumpla con los límites establecidos por el usuario.
-
-### ⚡ Rendimiento y Caché
-Para optimizar costes y latencia, se implementa un sistema de caché en MongoDB (`RecipeCache`). Si un usuario pide una receta con los mismos parámetros que una solicitud anterior, se sirve instantáneamente desde la base de datos sin llamar a la API de Google.
-
-### 🕷️ Sincronización de Productos
-Un scraper robusto (basado en `Cheerio` y `Axios`) extrae información nutricional detallada de productos Hacendado desde FatSecret España, normalizando datos y gestionando la paginación y errores de red automáticamente.
+**RecetAI Mercadona** solves the "what's for dinner" problem by aligning AI creativity with supermarket reality.
+Unlike other generic generators, this system ensures that:
+1.  The ingredients actually exist at Mercadona (thanks to FatSecret scraping).
+2.  Nutritional values (calories, macros) are real mathematical calculations, not AI hallucinations.
+3.  The recipes strictly comply with diets (Keto, Vegan, High-Protein, etc.).
 
 ---
 
-## 🧩 Stack Tecnológico
+## 🚀 Key Technical Features
 
-- **Framework:** Next.js + TypeScript
-- **Backend:** Node.js + Express (Server Pattern)
-- **IA:** Google Generative AI SDK (Gemini)
-- **Base de Datos:** MongoDB + Mongoose
-- **Validación:** Zod
-- **Scraping:** Axios + Cheerio
-- **Testing:** Jest + Supertest (Cobertura de Unit y Integration tests)
+### 🧠 Artificial Intelligence (Gemini 2.0 Flash)
+We use the `gemini-2.0-flash` model for fast and accurate generation. The system includes:
+-   **Advanced Prompt Engineering:** Dynamic prompt construction based on available products.
+-   **Self-Correction System:** If the AI generates invalid JSON or violates a nutritional rule, the system automatically retries by sending the error back to the AI for correction.
+
+### ⚡ Asynchronous & Scalable Architecture
+-   **Job Queue (BullMQ):** Long-running tasks, like the product scraper, are not run by the web server. Instead, they are added to a `Redis`-backed queue. This ensures the API responds instantly (`202 Accepted`) and prevents server timeouts.
+-   **Dedicated Worker:** A separate `worker` process (running in its own Docker container) listens to the queue and executes these heavy jobs in the background, ensuring the API is always available.
+-   **Caching (`RecipeCache`):** To optimize costs and latency, successful recipe generations are cached in MongoDB.
+
+### 🛡️ Validation and Security
+-   **Schema Validation (`Zod`):** Every request `body` and every AI response is strictly validated.
+-   **Business Logic Validation:** A dedicated service (`RecipeValidatorService`) mathematically verifies that nutritional info meets the user's goals.
+-   **API Security (`express-rate-limit`):** Protects costly endpoints (like AI generation and scraping) from abuse and simple DoS attacks.
+-   **Security Linting (`eslint-plugin-security`):** Automatically detects potential security vulnerabilities (like ReDoS) during development.
+
+### 🔄 Automated DevOps
+-   **Containerized Environment (`Docker`):** The entire application (API, Worker, MongoDB, Redis) runs in a fully isolated and reproducible environment using `docker-compose`.
+-   **Continuous Integration (`GitHub Actions`):** Every `push` to `main` and `develop` automatically runs all linters and tests, ensuring code quality and preventing broken builds.
+-   **Code Quality (`Husky + lint-staged`):** Automatically runs `eslint` and `prettier` before every `git commit`, ensuring consistent code style and preventing errors from ever reaching the repository.
 
 ---
 
-## 🏗️ Estructura del Proyecto
+## 🧩 Tech Stack
+
+-   **Framework:** Next.js + TypeScript
+-   **Backend:** Node.js + Express
+-   **AI:** Google Generative AI SDK (Gemini)
+-   **Database:** MongoDB + Mongoose
+-   **Job Queue:** `BullMQ` + `Redis`
+-   **Validation:** Zod
+-   **Scraping:** Axios + Cheerio
+-   **DevOps:** `Docker`, `GitHub Actions`
+-   **Testing:** Jest + Supertest
+-   **Linting:** `ESLint`, `Prettier`, `Husky`
+
+---
+
+## 🏗️ Project Structure
 
 ```text
-src/
-├── server/
-│   ├── config/       # Conexión a DB y cliente Gemini
-│   ├── controllers/  # Lógica de entrada de endpoints
-│   ├── models/       # Schemas Mongoose (Product, Recipe, RecipeCache)
-│   ├── services/     # Lógica de negocio compleja
-│   │   ├── recipe/   # Lógica específica de generación de recetas
-│   │   │   ├── recipeService.ts        # Orquestador principal
-│   │   │   ├── recipePromptBuilder.ts  # Construcción de prompts
-│   │   │   └── recipeValidatorService.ts # Reglas de negocio
-│   │   ├── geminiService.ts            # Comunicación con IA
-│   │   └── fatsecretScraperService.ts  # Extracción de datos
-│   ├── utils/        # Validaciones y mensajes de error
-│   └── routes/       # Definición de endpoints API
-└── types/            # Interfaces TypeScript compartidas
+.
+├── .github/workflows/    # CI/CD workflows (GitHub Actions)
+│   └── ci.yml
+├── .husky/               # Git hooks (pre-commit)
+│   └── pre-commit
+├── src/
+│   ├── components/       # (Future) React Components
+│   ├── pages/            # (Future) Next.js Pages
+│   └── server/
+│       ├── config/       # All config files
+│       │   ├── database.ts
+│       │   ├── gemini.ts
+│       │   ├── logger.ts
+│       │   ├── queues.ts     # BullMQ Queue/Worker config
+│       │   └── rateLimiters.ts
+│       ├── controllers/  # API route handlers
+│       ├── models/       # Mongoose Schemas (Product, Recipe, RecipeCache)
+│       ├── routes/       # Express route definitions
+│       ├── services/     # All business logic
+│       │   ├── recipe/   # Recipe generation logic
+│       │   ├── __tests__/ # Unit & Integration tests
+│       │   ├── fatsecretScraperService.ts
+│       │   └── ...
+│       ├── utils/
+│       ├── index.ts      # Express app definition (for tests)
+│       ├── server.ts     # Server entry point (runs the app)
+│       └── worker.ts     # Worker entry point (runs the queue)
+├── .env.example          # Environment variable template
+├── .gitignore
+├── docker-compose.yml    # Docker orchestra file (API + Worker + DB + Cache)
+├── Dockerfile.dev        # Docker instructions for development
+├── jest.config.js
+├── package.json
+└── tsconfig.json
 ```
 
-## ⚙️ Instalación y Configuración
+## ⚙️Installation (Docker Recommended)
 
-### 1️⃣ Prerrequisitos
+This project is designed to run in a containerized environment using Docker. This is the simplest and most reliable way to run the API, Worker, Database, and Cache with a single command.
 
-- Node.js (v18 o superior)
+### 1️⃣ Prerequisites
 
-- MongoDB ejecutándose localmente o en Atlas.
+- Git
 
-- Una API Key de Google AI Studio (Gemini).
+- Docker Desktop (or Docker Engine + Compose)
 
-### 2️⃣ Clonar el repositorio
+### 2️⃣ Clone the Repository
 
 ```bash
 git clone https://github.com/tuusuario/recetai-mercadona.git
 cd recetai-mercadona
 ```
 
-### 3️⃣ Instalar dependencias
-
-```bash
-npm install
-```
-
-### 4️⃣ Ejecutar
-
-#### Modo desarrollo
-
-```bash
-npm run dev
-```
-
-#### Servidor Backend (Standalone)
-
-```bash
-npm run server:dev
-```
-
-###  Variables de entorno (.env)
-
-Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
+### 3️⃣ Create Environment File
 
 ```
 PORT=5000
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/recetAI
-GOOGLE_API_KEY=tu_api_key_de_gemini_aqui
+MONGODB_URI=mongodb://mongodb:27017/recetAI
+REDIS_HOST=redis
+REDIS_PORT=6379
+GOOGLE_API_KEY=your_gemini_api_key_here
+```
+
+### 4️⃣ Run the Application
+
+This single command will build the images, start all containers (API, Worker, Mongo, Redis), and connect them.
+
+```bash
+docker-compose up --build
 ```
 
 ## 🧪 Testing
-El proyecto cuenta con una suite de tests exhaustiva utilizando Jest. Se cubren servicios críticos como el Scraper, la generación de Prompts y la lógica de validación.
-Para ejecutar los test:
+The project includes an exhaustive test suite using Jest. To run the tests:
 
 ```bash
-# Ejecutar todos los tests
+# Run all tests
 npm test
 
-# Ejecutar tests con reporte de cobertura
+# Run tests with coverage report
 npm run test:coverage
 
-# Ejecutar en modo vigilancia (watch)
+# Run in watch mode
 npm run test:watch
 ```
 
-## 🔄 Flujo de sincronización
+## 🔄 Asynchronous Synchronization Flow
 
-La aplicación incluye un sistema de sincronización que permite mantener actualizada la base de datos de productos de Mercadona. El proceso se realiza directamente desde la interfaz de usuario de la aplicación:
+The application features an asynchronous system for updating the product database.
 
-1. Endpoint: POST /api/products/sync
-2. El servicio se conecta a FatSecret España.
-3. Itera sobre las páginas de resultados buscando productos "Hacendado" o "Mercadona".
-4. Entra al detalle de cada producto para extraer 22 puntos de datos nutricionales (incluyendo grasas saturadas, fibra, sodio, etc.).
-5. Utiliza bulkWrite de MongoDB para insertar o actualizar eficientemente cientos de productos.
+1. **Trigger**: A user calls the POST /api/products/sync endpoint.
+2. **Queueing**: The API Controller instantly adds a sync-products-job to the BullMQ queue (in Redis) and responds with 202 Accepted. The HTTP request ends here.
+3. **Processing**: The separate worker process, which is constantly listening, picks up the job from the queue.
+4. **Execution**: The worker executes the fatsecretScraperService, which may take several minutes.
+5. **Completion**: The worker finishes the scrape and updates the MongoDB database with the new products.
 
 ## 📝 Licencia
-Este proyecto está bajo la Licencia MIT.
+This project is under the MIT License.
 

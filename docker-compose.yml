@@ -16,6 +16,27 @@ services:
       - /app/node_modules
     depends_on:
       - mongodb
+      - redis
+    
+  worker:
+    container_name: recetai-worker-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/recetAI
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run worker:dev
+    depends_on:
+      - mongodb
+      - redis
+  
   mongodb:
     image: mongo:6.0
     container_name: recetai-mongo
@@ -23,6 +44,15 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    
+  redis:
+    image: redis:7-alpine
+    container_name: recetai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data 
 
 volumes:
   mongo_data:
+  redis_data:

@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-object-injection */
 import { RecipeSuggestion, RecipeGenerationParams } from '../../types/recipe.types';
 import { Product, type ProductData } from '../../models/Product';
 import { RecipeCache } from '../../models/RecipeCache';
@@ -8,18 +9,27 @@ import { RecipeValidationError } from '../../errors/recipeErrors';
 import { RecipePromptBuilder } from './recipePromptBuilder';
 import { z } from 'zod';
 import objectHash from 'object-hash';
-import { ThemeProduct } from '@/server/types/product.ingredientThemes';
 import { RecipeValidatorService } from './recipeValidatorService';
 import { handleGenerationError } from '../../errors/recipeErrors';
 import { ErrorMessages } from '../../utils/validation';
 import logger from '../../config/logger';
+import { searchProductsByTheme } from '../vectorStoreService';
 
-const DIET_TO_GOALS_MAP: Record<string, { minProtein?: number; maxCarbs?: number; maxFat?: number }> = {
+const DIET_TO_GOALS_MAP: Record<
+  string,
+  { minProtein?: number; maxCarbs?: number; maxFat?: number }
+> = {
   'low-fat': { maxFat: 15 },
   'low-carb': { maxCarbs: 25 },
   'high-protein': { minProtein: 30 },
-  'keto': { maxCarbs: 10, maxFat: 60 },
+  keto: { maxCarbs: 10, maxFat: 60 },
 };
+
+interface FetchProductsResult {
+  products: ProductData[];
+  themesNotFound: string[];
+  themeMatches: Record<string, string[]>;
+}
 
 export class RecipeService {
   private static readonly MAX_RETRIES = 2;
@@ -73,9 +83,15 @@ export class RecipeService {
       throw new RecipeValidationError(ErrorMessages.generationFailedAfterServeralAttempts());
     }
     const ingredientThemes = params.preferences.ingredientThemes;
-    const {products, themesNotFound} = await this.fetchRelevantProducts(ingredientThemes);
+    const { products, themesNotFound, themeMatches } =
+      await this.fetchRelevantProducts(ingredientThemes);
 
-    const originalPrompt = RecipePromptBuilder.buildPrompt(params, products, ingredientThemes, themesNotFound);
+    const originalPrompt = RecipePromptBuilder.buildPrompt(
+      params,
+      products,
+      ingredientThemes,
+      themesNotFound
+    );
     let rawApiResponseText: string | undefined;
 
     try {
@@ -91,8 +107,8 @@ export class RecipeService {
       const dietKey = params.preferences.diet.toLowerCase().trim();
 
       // Search if the diet has nutritional goals rules
-      const dietGoal = Object.hasOwn(DIET_TO_GOALS_MAP, dietKey) 
-        ? DIET_TO_GOALS_MAP[dietKey as keyof typeof DIET_TO_GOALS_MAP] 
+      const dietGoal = Object.hasOwn(DIET_TO_GOALS_MAP, dietKey)
+        ? DIET_TO_GOALS_MAP[dietKey as keyof typeof DIET_TO_GOALS_MAP]
         : undefined;
 
       if (dietGoal) {
@@ -103,12 +119,11 @@ export class RecipeService {
         Object.assign(internalValidationParams.nutritionalGoals, dietGoal);
       }
 
-     RecipeValidatorService.validate(validatedRecipe, internalValidationParams);
+      RecipeValidatorService.validate(validatedRecipe, internalValidationParams, themeMatches);
 
       return validatedRecipe;
     } catch (error) {
       if (error instanceof z.ZodError || error instanceof RecipeValidationError) {
-
         const correctionPrompt = RecipePromptBuilder.buildCorrectionPrompt(
           error,
           rawApiResponseText,
@@ -119,7 +134,8 @@ export class RecipeService {
           params,
           products,
           correctionPrompt,
-          retryCount + 1
+          retryCount + 1,
+          themeMatches
         );
       }
       return handleGenerationError(error, rawApiResponseText);
@@ -127,56 +143,46 @@ export class RecipeService {
   }
 
   /**
-   * Fetches products from the database that match the provided ingredient themes.
-   * First, it fetches products that match the ingredient themes up to a limit of {@link PRODUCT_FETCH_LIMIT}.
-   * If the limit is not reached, it fetches additional products that do not match the ingredient themes,
-   * up to the remaining limit.
-   * @param ingredientThemes An array of ingredient themes to match against product names.
-   * @returns A promise that resolves to an array of product data objects.
+   * Fetches products from the database that match the given ingredient themes.
+   * If no products are found for a theme, the theme is added to the themesNotFound array.
+   * The function also fetches random products from the database to complete the limit of {@link PRODUCT_FETCH_LIMIT}.
+   * @param ingredientThemes The ingredient themes to search for in the database.
+   * @returns A promise that resolves to an object containing an array of all products, including the found products and the random products, and an array of themes that were not found in the database.
    */
-  private static async fetchRelevantProducts(ingredientThemes: string[]): Promise<{products: ProductData[], themesNotFound: string[]}> {
-    try {
-      const query = this.buildProductQuery(ingredientThemes);
+  private static async fetchRelevantProducts(
+    ingredientThemes: string[]
+  ): Promise<FetchProductsResult> {
+    const foundProductsMap = new Map<string, ProductData>();
+    const themesNotFound: string[] = [];
+    const themeMatches: Record<string, string[]> = {};
 
-      const themeProducts = await Product.find(query).limit(this.PRODUCT_FETCH_LIMIT).lean();
+    await setFoundProductsMap(ingredientThemes, foundProductsMap, themesNotFound, themeMatches);
 
-      const themesNotFound = getNotFoundThemes(ingredientThemes, themeProducts);
+    const allProducts: ProductData[] = await RecipeService.setRemainingProducts(foundProductsMap);
 
-      const remainingLimit = this.PRODUCT_FETCH_LIMIT - themeProducts.length;
-
-      if (remainingLimit <= 0) {
-        return {products: themeProducts, themesNotFound};
-      }
-
-      const excludeIds = themeProducts.map(p => p._id);
-
-      const additionalProducts = await Product.find({
-        _id: { $nin: excludeIds },
-      })
-        .limit(remainingLimit)
-        .lean();
-
-      return {products: [...themeProducts, ...additionalProducts], themesNotFound};
-    } catch (error) {
-      logger.error('Error fetching products:', error);
-      return {products: [], themesNotFound: ingredientThemes};
-    }
+    return { products: allProducts, themesNotFound, themeMatches };
   }
 
   /**
-   * Builds a MongoDB query to find products with names that match the provided ingredient themes.
-   * If no themes are provided, an empty query object is returned.
-   * @param themes An array of ingredient themes to match against product names.
-   * @returns A MongoDB query object.
+   * Fetches the remaining products from the database that are not yet in the foundProductsMap
+   * up to the limit of {@link PRODUCT_FETCH_LIMIT}.
+   * If the number of products in foundProductsMap is less than the limit, random products are fetched
+   * from the database to complete the limit.
+   * @param foundProductsMap The map of found products
+   * @returns A promise that resolves to an array of all products, including the found products and the random products.
    */
-  private static buildProductQuery(themes: string[]): Record<string, unknown> {
-    const query: Record<string, unknown> = {};
+  private static async setRemainingProducts(foundProductsMap: Map<string, ProductData>) {
+    let allProducts: ProductData[] = Array.from(foundProductsMap.values());
 
-    if (themes && themes.length > 0) {
-      query.name = { $regex: themes.join('|'), $options: 'i' };
+    const remainingLimit = this.PRODUCT_FETCH_LIMIT - allProducts.length;
+    if (remainingLimit > 0) {
+      const excludeIds = allProducts.map(p => (p as ProductData)._id);
+      const randomProducts = await Product.find({ _id: { $nin: excludeIds } })
+        .limit(remainingLimit)
+        .lean();
+      allProducts = [...allProducts, ...randomProducts];
     }
-
-    return query;
+    return allProducts;
   }
 
   /**
@@ -194,7 +200,8 @@ export class RecipeService {
     params: RecipeGenerationParams,
     products: ProductData[],
     correctionPrompt: string,
-    retryCount: number
+    retryCount: number,
+    themeMatches: Record<string, string[]>
   ): Promise<RecipeSuggestion> {
     let rawApiResponseText: string | undefined;
     try {
@@ -205,7 +212,7 @@ export class RecipeService {
       const rawRecipeObject = extractJsonResponse(rawApiResponseText);
       const validatedRecipe = RecipeSuggestionSchema.parse(rawRecipeObject);
 
-      RecipeValidatorService.validate(validatedRecipe, params);
+      RecipeValidatorService.validate(validatedRecipe, params, themeMatches);
 
       return validatedRecipe;
     } catch (finalError) {
@@ -219,19 +226,40 @@ export class RecipeService {
   }
 }
 
-function getNotFoundThemes(ingredientThemes: string[], themeProducts: ThemeProduct[]) {
-  const foundThemes = new Set<string>();
-  if (ingredientThemes.length > 0) {
-    themeProducts.forEach(p => {
-      const productNameLower = p.name.toLowerCase();
-      ingredientThemes.forEach(theme => {
-        if (productNameLower.includes(theme.toLowerCase())) {
-          foundThemes.add(theme.toLowerCase());
-        }
-      });
-    });
+/**
+ * Sets the found products map and the themes not found array.
+ * For each ingredient theme, it searches for products in the vector store.
+ * If products are found, it sets the found products map and the theme matches record.
+ * If no products are found, it adds the theme to the themes not found array.
+ * @param ingredientThemes The ingredient themes to search for in the vector store.
+ * @param foundProductsMap The map of found products.
+ * @param themesNotFound The array of themes that were not found in the vector store.
+ * @param themeMatches The record of theme matches.
+ */
+async function setFoundProductsMap(
+  ingredientThemes: string[],
+  foundProductsMap: Map<string, ProductData>,
+  themesNotFound: string[],
+  themeMatches: Record<string, string[]>
+) {
+  for (const theme of ingredientThemes) {
+    try {
+      const vectorResults = await searchProductsByTheme(theme, 50);
+
+      if (vectorResults.length > 0) {
+        const shuffledResults = vectorResults.sort(() => 0.5 - Math.random()).slice(0, 10);
+
+        const ids = shuffledResults.map(r => r.id);
+
+        const productsFromDb = await Product.find({ _id: { $in: ids } }).lean();
+        themeMatches[theme] = productsFromDb.map(p => p.name);
+        productsFromDb.forEach(p => foundProductsMap.set(p._id.toString(), p));
+      } else {
+        themesNotFound.push(theme);
+      }
+    } catch (error) {
+      logger.error(`Error searching vector for theme ${theme}`, error);
+      themesNotFound.push(theme);
+    }
   }
-
-  return ingredientThemes.filter(t => !foundThemes.has(t.toLowerCase()));
 }
-

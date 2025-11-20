@@ -30,6 +30,7 @@
   "homepage": "https://github.com/DavidFuentelsazRodriguez/RecetAI-Mercadona#readme",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@qdrant/js-client-rest": "^1.16.0",
     "@types/node": "^24.7.2",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",

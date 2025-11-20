@@ -2,6 +2,7 @@ import { Product, ProductData } from '../models/Product';
 import { getMercadonaProductsFromFatSecret } from './fatsecretScraperService';
 import logger from '../config/logger';
 import { ErrorMessages } from '../utils/validation';
+import { initVectorStore, indexProducts } from './vectorStoreService';
 
 /**
  * Cleans all existing Mercadona products from database
@@ -27,9 +28,11 @@ export const cleanMercadonaProducts = async () => {
  */
 export const syncProducts = async () => {
   try {
+    
+    await initVectorStore();
+
     const products: ProductData[] = await getMercadonaProductsFromFatSecret();
 
-    // Prepare bulk operations for efficient update/insert
     const bulkOps = products.map(product => ({
       updateOne: {
         filter: { name: product.name },
@@ -40,15 +43,19 @@ export const syncProducts = async () => {
       },
     }));
 
-    // Execute bulk operations
     let result;
     if (bulkOps.length > 0) {
       result = await Product.bulkWrite(bulkOps);
+
+      const productNames = products.map(p => p.name);
+      const productsWithIds = await Product.find({ name: { $in: productNames } }).lean();
+      
+      await indexProducts(productsWithIds);
     }
 
     return {
       success: true,
-      message: `Successfully synced ${products.length} products`,
+      message: `Successfully synced and indexed ${products.length} products`,
       syncedCount: products.length,
       stats: result,
     };

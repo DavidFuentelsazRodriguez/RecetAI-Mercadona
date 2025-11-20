@@ -12,8 +12,9 @@ It uses **Google Gemini** AI to create personalized dishes that strictly adhere 
 **RecetAI Mercadona** solves the "what's for dinner" problem by aligning AI creativity with supermarket reality.
 Unlike other generic generators, this system ensures that:
 1.  The ingredients actually exist at Mercadona (thanks to FatSecret scraping).
-2.  Nutritional values (calories, macros) are real mathematical calculations, not AI hallucinations.
-3.  The recipes strictly comply with diets (Keto, Vegan, High-Protein, etc.).
+2.  **Ingredients are found by meaning, not just text:** It understands that "Oats" matches "Porridge" using vector embeddings.
+3.  Nutritional values (calories, macros) are real mathematical calculations, not AI hallucinations.
+4.  The recipes strictly comply with diets (Keto, Vegan, High-Protein, etc.).
 
 ---
 
@@ -23,6 +24,7 @@ Unlike other generic generators, this system ensures that:
 We use the `gemini-2.0-flash` model for fast and accurate generation. The system includes:
 -   **Advanced Prompt Engineering:** Dynamic prompt construction based on available products.
 -   **Self-Correction System:** If the AI generates invalid JSON or violates a nutritional rule, the system automatically retries by sending the error back to the AI for correction.
+-   **Vector Database (Qdrant):** Stores mathematical representations (embeddings) of every product. This allows the system to find ingredients by *concept* rather than exact keyword matching.
 
 ### ⚡ Asynchronous & Scalable Architecture
 -   **Job Queue (BullMQ):** Long-running tasks, like the product scraper, are not run by the web server. Instead, they are added to a `Redis`-backed queue. This ensures the API responds instantly (`202 Accepted`) and prevents server timeouts.
@@ -31,7 +33,7 @@ We use the `gemini-2.0-flash` model for fast and accurate generation. The system
 
 ### 🛡️ Validation and Security
 -   **Schema Validation (`Zod`):** Every request `body` and every AI response is strictly validated.
--   **Business Logic Validation:** A dedicated service (`RecipeValidatorService`) mathematically verifies that nutritional info meets the user's goals.
+-   **Semantic Validation:** A dedicated service verifies that the AI-generated ingredients match the database products using semantic similarity, even if the names differ slightly (e.g., "Whole Wheat Pasta" vs "Integral Spaghetti").
 -   **API Security (`express-rate-limit`):** Protects costly endpoints (like AI generation and scraping) from abuse and simple DoS attacks.
 -   **Security Linting (`eslint-plugin-security`):** Automatically detects potential security vulnerabilities (like ReDoS) during development.
 
@@ -47,13 +49,16 @@ We use the `gemini-2.0-flash` model for fast and accurate generation. The system
 -   **Framework:** Next.js + TypeScript
 -   **Backend:** Node.js + Express
 -   **AI:** Google Generative AI SDK (Gemini)
--   **Database:** MongoDB + Mongoose
--   **Job Queue:** `BullMQ` + `Redis`
+-   **Databases:**
+    -   MongoDB (Data & Cache)
+    -   Redis (Job Queues)
+    -   Qdrant (Vector Search)
 -   **Validation:** Zod
 -   **Scraping:** Axios + Cheerio
--   **DevOps:** `Docker`, `GitHub Actions`
+-   **DevOps:** Docker, GitHub Actions
 -   **Testing:** Jest + Supertest
--   **Linting:** `ESLint`, `Prettier`, `Husky`
+-   **Logging:** Winston
+-   **Linting:** ESLint, Prettier, Husky
 
 ---
 
@@ -76,11 +81,12 @@ We use the `gemini-2.0-flash` model for fast and accurate generation. The system
 │       │   ├── queues.ts     # BullMQ Queue/Worker config
 │       │   └── rateLimiters.ts
 │       ├── controllers/  # API route handlers
+├       │   ├── __tests__/ # Integration tests
 │       ├── models/       # Mongoose Schemas (Product, Recipe, RecipeCache)
 │       ├── routes/       # Express route definitions
 │       ├── services/     # All business logic
 │       │   ├── recipe/   # Recipe generation logic
-│       │   ├── __tests__/ # Unit & Integration tests
+│       │   ├── __tests__/ # Unit tests
 │       │   ├── fatsecretScraperService.ts
 │       │   └── ...
 │       ├── utils/
@@ -118,9 +124,15 @@ cd recetai-mercadona
 ```
 PORT=5000
 NODE_ENV=development
+
+# Internal Docker Network URLs (Do not change if using Docker)
 MONGODB_URI=mongodb://mongodb:27017/recetAI
 REDIS_HOST=redis
 REDIS_PORT=6379
+QDRANT_HOST=qdrant
+QDRANT_PORT=6333
+
+# Your Secrets
 GOOGLE_API_KEY=your_gemini_api_key_here
 ```
 
@@ -131,6 +143,8 @@ This single command will build the images, start all containers (API, Worker, Mo
 ```bash
 docker-compose up --build
 ```
+- API: ```http://localhost:5000```
+- Qdrant Dashboard: ```http://localhost:6333/dashboard```
 
 ## 🧪 Testing
 The project includes an exhaustive test suite using Jest. To run the tests:
@@ -148,13 +162,14 @@ npm run test:watch
 
 ## 🔄 Asynchronous Synchronization Flow
 
-The application features an asynchronous system for updating the product database.
+The product database is kept up-to-date via an asynchronous background process:
 
-1. **Trigger**: A user calls the POST /api/products/sync endpoint.
-2. **Queueing**: The API Controller instantly adds a sync-products-job to the BullMQ queue (in Redis) and responds with 202 Accepted. The HTTP request ends here.
-3. **Processing**: The separate worker process, which is constantly listening, picks up the job from the queue.
-4. **Execution**: The worker executes the fatsecretScraperService, which may take several minutes.
-5. **Completion**: The worker finishes the scrape and updates the MongoDB database with the new products.
+1. **Trigger**: Client sends POST /api/products/sync.
+2. **Queue**: The API validates the request (Rate Limit) and adds a job to Redis. Responds 202 Accepted.
+3. **Worker**: The Worker container picks up the job.
+4. **Scrape**: It scrapes product data from FatSecret.
+5. **Vectorize**: It uses Gemini to generate embeddings for every new product.
+6. **Index**: It updates MongoDB (metadata) and Qdrant (vectors) simultaneously.
 
 ## 📝 Licencia
 This project is under the MIT License.

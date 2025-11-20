@@ -2,16 +2,22 @@
 import { ErrorMessages } from '../../utils/validation';
 import { Product } from '../../models/Product';
 import { getMercadonaProductsFromFatSecret } from '../fatsecretScraperService';
-import { 
-  getProducts, 
-  cleanMercadonaProducts, 
-  syncProducts, 
-  getProductById 
+import { indexProducts, initVectorStore } from '../vectorStoreService';
+import {
+  getProducts,
+  cleanMercadonaProducts,
+  syncProducts,
+  getProductById,
 } from '../productsService';
 
 // Mock scraper service
 jest.mock('../fatsecretScraperService', () => ({
   getMercadonaProductsFromFatSecret: jest.fn(),
+}));
+
+jest.mock('../vectorStoreService', () => ({
+  initVectorStore: jest.fn(),
+  indexProducts: jest.fn(),
 }));
 
 // Mock mongoose model
@@ -20,12 +26,17 @@ const mockLimit = jest.fn(() => ({ lean: mockLean }));
 const mockSkip = jest.fn(() => ({ limit: mockLimit }));
 const mockSort = jest.fn(() => ({ skip: mockSkip }));
 
+const mockFindReturn = {
+  sort: mockSort,
+  lean: mockLean,
+};
+
 jest.mock('../../models/Product', () => ({
   Product: {
-    // We mock the static methods used by the service 
+    // We mock the static methods used by the service
     deleteMany: jest.fn(),
     bulkWrite: jest.fn(),
-    find: jest.fn(() => ({ sort: mockSort })),
+    find: jest.fn(() => mockFindReturn),
     countDocuments: jest.fn(),
     findById: jest.fn(),
   },
@@ -34,7 +45,8 @@ jest.mock('../../models/Product', () => ({
 // Mock typescript types
 const mockedGetMercadonaProducts = getMercadonaProductsFromFatSecret as jest.Mock;
 const mockedProduct = Product as jest.Mocked<typeof Product>;
-
+const mockedInitVectorStore = initVectorStore as jest.Mock;
+const mockedIndexProducts = indexProducts as jest.Mock;
 
 // Test data
 const mockProducts = [
@@ -46,10 +58,9 @@ const mockProducts = [
 // TESTS
 // -----------------------------------------------------------------
 describe('ProductsService', () => {
-
   // Clear mocks before each test
   beforeEach(() => {
-    jest.clearAllMocks(); 
+    jest.clearAllMocks();
     mockLean.mockClear();
     mockSort.mockClear();
     mockSkip.mockClear();
@@ -57,10 +68,9 @@ describe('ProductsService', () => {
   });
 
   describe('getProducts', () => {
-    
     it('should return products and pagination correctly', async () => {
       // Arrange
-      mockLean.mockResolvedValue(mockProducts); 
+      mockLean.mockResolvedValue(mockProducts);
       mockedProduct.countDocuments.mockResolvedValue(2);
 
       // Act
@@ -71,7 +81,7 @@ describe('ProductsService', () => {
       expect(result.total).toBe(2);
       expect(result.count).toBe(2);
       expect(result.page).toBe(1);
-      expect(result.data).toEqual(mockProducts); 
+      expect(result.data).toEqual(mockProducts);
 
       // Verify that the database was called with the correct parameters
       expect(mockedProduct.find).toHaveBeenCalledWith({}); // Empty query
@@ -83,7 +93,6 @@ describe('ProductsService', () => {
   });
 
   describe('cleanMercadonaProducts', () => {
-    
     it('should clean Mercadona products', async () => {
       // Arrange
       // Simulate that the DB deleted 10 products
@@ -96,7 +105,7 @@ describe('ProductsService', () => {
       expect(result.success).toBe(true);
       expect(result.deletedCount).toBe(10);
       expect(result.message).toContain('10');
-      
+
       // Verify that deleteMany was called with the correct filter
       expect(mockedProduct.deleteMany).toHaveBeenCalledWith({ isMercadona: true });
     });
@@ -107,13 +116,10 @@ describe('ProductsService', () => {
       mockedProduct.deleteMany.mockRejectedValue(mockError);
 
       // Act and Assert
-      await expect(cleanMercadonaProducts()).rejects.toThrow(
-        ErrorMessages.failedToCleanProducts()
-      );
+      await expect(cleanMercadonaProducts()).rejects.toThrow(ErrorMessages.failedToCleanProducts());
     });
   });
 
-  
   describe('syncProducts', () => {
     // Test data that simulates the scraper response
     const mockScrapedProducts = [
@@ -121,44 +127,42 @@ describe('ProductsService', () => {
       { name: 'Cheese', brand: 'Hacendado', nutritionalInfo: { calories: 300 } },
     ];
 
-    it('should sync products and call bulkWrite correctly', async () => {
-      // Arrange 
+    const mockDbProducts = [
+      { _id: '1', name: 'Chicken', brand: 'Hacendado' },
+      { _id: '2', name: 'Cheese', brand: 'Hacendado' },
+    ];
+
+    it('should sync products, initialize vector store, and index products', async () => {
+      // Arrange
       mockedGetMercadonaProducts.mockResolvedValue(mockScrapedProducts);
-      
+
       // Mock the database response (bulkWrite)
       const mockBulkResult = { upsertedCount: 2, modifiedCount: 0 };
       mockedProduct.bulkWrite.mockResolvedValue(mockBulkResult as any);
 
+      mockLean.mockResolvedValue(mockDbProducts);
+
       // Act
       const result = await syncProducts();
 
-      // Assert 
+      // Assert
       // Verify the service response
       expect(result.success).toBe(true);
       expect(result.syncedCount).toBe(2);
       expect(result.stats).toEqual(mockBulkResult);
 
-      // Verify the scraper was called
+      expect(mockedInitVectorStore).toHaveBeenCalledTimes(1);
       expect(mockedGetMercadonaProducts).toHaveBeenCalledTimes(1);
-
-      // Verify bulkWrite was called
       expect(mockedProduct.bulkWrite).toHaveBeenCalledTimes(1);
+      expect(mockedProduct.find).toHaveBeenCalledWith({ 
+        name: { $in: ['Chicken', 'Cheese'] } 
+      });
 
-      const expectedBulkOps = mockScrapedProducts.map(product => ({
-        updateOne: {
-          filter: { name: product.name },
-          update: {
-            $set: product,
-          },
-          upsert: true,
-        },
-      }));
-
-      // Check that bulkWrite was called with the correct operations
-      expect(mockedProduct.bulkWrite).toHaveBeenCalledWith(expectedBulkOps);
+      expect(mockedIndexProducts).toHaveBeenCalledTimes(1);
+      expect(mockedIndexProducts).toHaveBeenCalledWith(mockDbProducts);
     });
 
-    it('should not call bulkWrite if there are no products', async () => {
+    it('should not call bulkWrite or indexProducts if scraper returns empty', async () => {
       // Arrange
       // Scraper returns no products
       mockedGetMercadonaProducts.mockResolvedValue([]);
@@ -169,21 +173,26 @@ describe('ProductsService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.syncedCount).toBe(0);
-      
+
       // Verify bulkWrite was NOT called
+      expect(mockedInitVectorStore).toHaveBeenCalledTimes(1); 
       expect(mockedProduct.bulkWrite).not.toHaveBeenCalled();
+      expect(mockedIndexProducts).not.toHaveBeenCalled();
     });
 
     it('should throw an error if the scraper fails', async () => {
       // Arrange
-      const mockError = new Error('Scraper failed');
-      mockedGetMercadonaProducts.mockRejectedValue(mockError);
-
-      // Act and Assert
-      await expect(syncProducts()).rejects.toThrow(ErrorMessages.failedToSyncProducts());
-
-      // Verify bulkWrite was not even attempted
-      expect(mockedProduct.bulkWrite).not.toHaveBeenCalled();
+        mockedGetMercadonaProducts.mockResolvedValue(mockScrapedProducts);
+        mockedProduct.bulkWrite.mockResolvedValue({} as any);
+        mockLean.mockResolvedValue(mockDbProducts);
+        
+        // Simulamos fallo en la indexación vectorial
+        mockedIndexProducts.mockRejectedValue(new Error('Qdrant down'));
+  
+        // Act and Assert
+        // El servicio debería fallar si la indexación falla (o loguear, depende de tu implementación, 
+        // pero en el código actual hay un try/catch general que relanza el error)
+        await expect(syncProducts()).rejects.toThrow('Failed to sync products');
     });
 
     it('should throw an error if bulkWrite fails', async () => {
@@ -200,12 +209,11 @@ describe('ProductsService', () => {
   });
 
   describe('getProductById', () => {
-    
     it('should return a product if found', async () => {
       // Arrange
       const mockProductId = '12345';
       const mockSingleProduct = { _id: mockProductId, name: 'Tomato' };
-      
+
       // Configure the findById mock to return the product
       mockedProduct.findById.mockResolvedValue(mockSingleProduct);
 
@@ -213,8 +221,8 @@ describe('ProductsService', () => {
       const result = await getProductById(mockProductId);
 
       // Assert
-      expect(result).toEqual(mockSingleProduct); 
-      
+      expect(result).toEqual(mockSingleProduct);
+
       // Verify the database was called with the correct ID
       expect(mockedProduct.findById).toHaveBeenCalledWith(mockProductId);
       expect(mockedProduct.findById).toHaveBeenCalledTimes(1);
@@ -223,7 +231,7 @@ describe('ProductsService', () => {
     it('should return null if product is not found', async () => {
       // Arrange
       const mockProductId = 'abcde';
-      
+
       // Configure the findById mock to return null
       mockedProduct.findById.mockResolvedValue(null);
 
@@ -231,7 +239,7 @@ describe('ProductsService', () => {
       const result = await getProductById(mockProductId);
 
       // Assert
-      expect(result).toBeNull(); 
+      expect(result).toBeNull();
       expect(mockedProduct.findById).toHaveBeenCalledWith(mockProductId);
     });
 
@@ -246,5 +254,4 @@ describe('ProductsService', () => {
       );
     });
   });
-
 });

@@ -52,13 +52,24 @@ describe('RecipeValidatorService', () => {
 
     it('should call validateIngredientThemes with correct parameters', () => {
       // Arrange
-      const recipe = { ...baseRecipe };
+      const recipe = {
+        ...baseRecipe,
+        ingredients: [
+          { name: 'chicken breast', quantity: 200, unit: 'g' },
+          { name: 'basmati rice', quantity: 150, unit: 'g' },
+          { name: 'olive oil', quantity: 15, unit: 'ml' },
+        ],
+      };
       const params = {
         ...baseParams,
         preferences: {
           ...baseParams.preferences,
           ingredientThemes: ['chicken', 'rice'],
         },
+      };
+      const themeMatches: Record<string, string[]> = {
+        chicken: ['chicken breast'],
+        rice: ['basmati rice'],
       };
 
       // Create a spy on the prototype method
@@ -68,10 +79,14 @@ describe('RecipeValidatorService', () => {
       );
 
       // Act
-      RecipeValidatorService.validate(recipe, params);
+      RecipeValidatorService.validate(recipe, params, themeMatches);
 
       // Assert
-      expect(validateIngredientThemesSpy).toHaveBeenCalledWith(recipe, ['chicken', 'rice']);
+      expect(validateIngredientThemesSpy).toHaveBeenCalledWith(
+        recipe,
+        ['chicken', 'rice'],
+        themeMatches
+      );
 
       // Cleanup
       validateIngredientThemesSpy.mockRestore();
@@ -92,10 +107,7 @@ describe('RecipeValidatorService', () => {
       };
 
       // Create a spy on the prototype method
-      const validateNutritionSpy = jest.spyOn(
-        RecipeValidatorService as any,
-        'validateNutrition'
-      );
+      const validateNutritionSpy = jest.spyOn(RecipeValidatorService as any, 'validateNutrition');
 
       // Act
       RecipeValidatorService.validate(recipe, params);
@@ -115,10 +127,7 @@ describe('RecipeValidatorService', () => {
       const recipe = { ...baseRecipe };
       const params = { ...baseParams, nutritionalGoals: {} };
 
-      const validateNutritionSpy = jest.spyOn(
-        RecipeValidatorService as any,
-        'validateNutrition'
-      );
+      const validateNutritionSpy = jest.spyOn(RecipeValidatorService as any, 'validateNutrition');
 
       // Act
       RecipeValidatorService.validate(recipe, params);
@@ -159,12 +168,16 @@ describe('RecipeValidatorService', () => {
         ...baseParams,
         preferences: {
           ...baseParams.preferences,
-          ingredientThemes: ['beef'], // Not in the recipe
+          ingredientThemes: ['beef'],
         },
       };
 
+      const themeMatches: Record<string, string[]> = {
+        beef: ['beef']
+      };
+
       // Act & Assert
-      expect(() => RecipeValidatorService.validate(recipe, params)).toThrow(RecipeValidationError);
+      expect(() => RecipeValidatorService.validate(recipe, params, themeMatches)).toThrow(RecipeValidationError);
     });
 
     it('should throw RecipeValidationError when validateNutrition fails', () => {
@@ -208,11 +221,11 @@ describe('RecipeValidatorService', () => {
         maxCalories: 600,
         minProtein: 30,
         maxCarbs: 60,
-        maxFat: 20
+        maxFat: 20,
       };
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).not.toThrow();
     });
@@ -223,7 +236,7 @@ describe('RecipeValidatorService', () => {
       const goals = { minCalories: 400 };
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).toThrow(RecipeValidationError);
     });
@@ -234,7 +247,7 @@ describe('RecipeValidatorService', () => {
       const goals = { maxCalories: 600 };
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).toThrow(RecipeValidationError);
     });
@@ -245,7 +258,7 @@ describe('RecipeValidatorService', () => {
       const goals = { minProtein: 30 };
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).toThrow(RecipeValidationError);
     });
@@ -256,7 +269,7 @@ describe('RecipeValidatorService', () => {
       const goals = { maxCarbs: 60 };
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).toThrow(RecipeValidationError);
     });
@@ -267,7 +280,7 @@ describe('RecipeValidatorService', () => {
       const goals = { maxFat: 20 };
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).toThrow(RecipeValidationError);
     });
@@ -278,7 +291,7 @@ describe('RecipeValidatorService', () => {
       const goals = {}; // No goals provided
 
       // Act & Assert
-      expect(() => 
+      expect(() =>
         (RecipeValidatorService as any).validateNutrition(nutritionalInfo, goals)
       ).not.toThrow();
     });
@@ -339,11 +352,16 @@ describe('RecipeValidatorService', () => {
           { name: 'rice', quantity: 150, unit: 'g' },
         ],
       };
-      const ingredientThemes = ['chicken', 'beef', 'rice'];
+
+      const ingredientThemes = ['Chicken', 'Rice']
+      const themeMatches: Record<string, string[]> = {
+        chicken: ['chicken breast'],
+        rice: ['basmati rice'],
+      };
 
       // Act & Assert
       expect(() => {
-        RecipeValidatorService['validateIngredientThemes'](recipe, ingredientThemes);
+        RecipeValidatorService['validateIngredientThemes'](recipe, ingredientThemes, themeMatches);
       }).toThrow(RecipeValidationError);
     });
   });

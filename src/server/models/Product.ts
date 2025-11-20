@@ -14,6 +14,7 @@ type NutritionalInfo = {
 };
 
 export interface ProductData {
+  _id?: string;
   name: string;
   brand?: string;
   imageUrl?: string;

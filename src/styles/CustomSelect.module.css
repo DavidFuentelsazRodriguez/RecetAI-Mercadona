@@ -1,0 +1,113 @@
+.container {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.6rem;
+  font-weight: 700;
+  color: #374151;
+  font-size: 0.95rem;
+}
+
+.trigger {
+  width: 100%;
+  padding: 1rem;
+  background-color: #f3f4f6;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: #1f2937;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.trigger:hover {
+  background-color: #e5e7eb;
+}
+
+.trigger.isOpen {
+  background-color: #fff;
+  border-color: #0070f3;
+  box-shadow: 0 0 0 4px rgba(0, 112, 243, 0.1);
+}
+
+.arrow {
+  font-size: 0.8rem;
+  color: #6b7280;
+  transition: transform 0.3s ease;
+}
+
+.trigger.isOpen .arrow {
+  transform: rotate(180deg);
+  color: #0070f3;
+}
+
+.dropdown {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  z-index: 50;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.option {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.option:hover {
+  background-color: #f0f9ff;
+  color: #0070f3;
+}
+
+.option.selected {
+  background-color: #eff6ff;
+  color: #0070f3;
+  font-weight: 600;
+}
+
+.dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+.dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdown::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 20px;
+  border: 2px solid white;
+}
+
+.backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 40;
+  background: transparent;
+  cursor: default;
+}

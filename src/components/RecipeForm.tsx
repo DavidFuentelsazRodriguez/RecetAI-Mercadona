@@ -1,7 +1,28 @@
 import React from 'react';
 import styles from '../styles/RecipeForm.module.css';
-import { Utensils, ShoppingCart, Flame, ChartLine, AlarmClock } from 'lucide-react';
+import { CustomSelect, Option } from './CustomSelect';
+import { ShoppingCart, Flame, AlarmClock, Leaf, BarChart3 } from 'lucide-react';
 import { TagInput } from './TagInput';
+
+
+const DIET_OPTIONS: Option[] = [
+  { value: "omnivore", label: "🍖 Omnívora (Todo)" },
+  { value: "vegetarian", label: "🥦 Vegetariana" },
+  { value: "vegan", label: "🌱 Vegana" },
+  { value: "keto", label: "🥑 Keto" },
+  { value: "low-carb", label: "📉 Baja en Carbohidratos" },
+  { value: "high-protein", label: "💪 Alta en Proteína" },
+  { value: "low-fat", label: "❤️ Baja en Grasas" },
+  { value: "gluten-free", label: "🌾 Sin Gluten" },
+  { value: "lactose-free", label: "🥛 Sin Lactosa" },
+  { value: "high-fiber", label: "🌽 Alta en Fibra" },
+];
+
+const DIFFICULTY_OPTIONS: Option[] = [
+  { value: "easy", label: "🟢 Fácil (Principiante)" },
+  { value: "medium", label: "🟡 Media (Cocinillas)" },
+  { value: "hard", label: "🔴 Difícil (Chef)" },
+];
 
 interface RecipeFormProps {
   onSubmit: (e: React.FormEvent) => void;
@@ -50,65 +71,30 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
     <section className={styles.formCard}>
       <form onSubmit={onSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-          <div className={styles.formGroup}>
-            <label htmlFor="diet" className={styles.label}>
-              <Utensils
-                size={16}
-                style={{ display: 'inline', marginRight: '8px', verticalAlign: '-2px' }}
-              />{' '}
-              Dieta
-            </label>
-            <div className={styles.selectWrapper}>
-              <select
-                id="diet"
+            
+            <CustomSelect 
+                label="Tipo de Dieta"
+                icon={<Leaf size={16} color='#0070f3'/>}
                 value={diet}
-                onChange={e => setDiet(e.target.value)}
-                className={styles.select}
-              >
-                <option value="omnivore">Omnívora</option>
-                <option value="vegetarian">Vegetariana</option>
-                <option value="vegan">Vegana</option>
-                <option value="keto">Keto</option>
-                <option value="low-carb">Low Carb</option>
-                <option value="high-protein">Alta Proteína</option>
-                <option value="low-fat">Baja Grasa</option>
-                <option value="gluten-free">Sin Gluten</option>
-                <option value="lactose-free">Sin Lactosa</option>
-                <option value="high-fiber">Alta Fibra</option>
-              </select>
-              <span className={styles.selectArrow}>▼</span>
-            </div>
-          </div>
+                onChange={setDiet}
+                options={DIET_OPTIONS}
+            />
 
-          <div className={styles.formGroup}>
-            <label htmlFor="difficulty" className={styles.label}>
-              <ChartLine
-                size={16}
-                style={{ display: 'inline', marginRight: '8px', verticalAlign: '-2px' }}
-              />{' '}
-              Dificultad
-            </label>
-            <div className={styles.selectWrapper}>
-              <select
-                id="difficulty"
+            <CustomSelect 
+                label="Dificultad"
+                icon={<BarChart3 size={16} color='#0070f3'/>}
                 value={difficulty}
-                onChange={e => setDifficulty(e.target.value)}
-                className={styles.select}
-              >
-                <option value="easy">Fácil</option>
-                <option value="medium">Media</option>
-                <option value="hard">Difícil</option>
-              </select>
-              <span className={styles.selectArrow}>▼</span>
-            </div>
-          </div>
+                onChange={setDifficulty}
+                options={DIFFICULTY_OPTIONS}
+            />
         </div>
-
+        
         <div className={styles.formGroup}>
           <label className={styles.label}>
             <ShoppingCart
               size={16}
               style={{ display: 'inline', marginRight: '8px', verticalAlign: '-2px' }}
+              color="#0070f3"
             />{' '}
             Ingredientes
           </label>
@@ -128,6 +114,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
               <AlarmClock
                 size={16}
                 style={{ display: 'inline', marginRight: '8px', verticalAlign: '-2px' }}
+                color="#0070f3"
               />{' '}
               Tiempo Disponible
             </label>
@@ -155,6 +142,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
               <Flame
                 size={16}
                 style={{ display: 'inline', marginRight: '8px', verticalAlign: '-2px' }}
+                color="#0070f3"
               />{' '}
               Rango Calórico
             </label>
@@ -199,7 +187,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
           disabled={loading}
           className={`${styles.submitBtn} ${loading ? styles.loading : ''}`}
         >
-          {loading ? '🔄 Cocinando...' : 'Generar Receta'}
+          {loading ? 'Cocinando...' : 'Generar Receta'}
         </button>
       </form>
     </section>

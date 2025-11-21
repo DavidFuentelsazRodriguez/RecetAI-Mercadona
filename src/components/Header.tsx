@@ -1,4 +1,5 @@
 import React from 'react';
+import { RefreshCcw, CookingPot } from 'lucide-react';
 
 interface HeaderProps {
   onSync: () => void;
@@ -6,7 +7,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onSync }) => (
   <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-    <h1 style={{ margin: 0 }}>🍳 RecetAI Mercadona</h1>
+    <h1 style={{ margin: 0 }}><CookingPot size={30} /> RecetAI Mercadona</h1>
     <button 
       onClick={onSync} 
       style={{ 
@@ -19,7 +20,7 @@ export const Header: React.FC<HeaderProps> = ({ onSync }) => (
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)' 
       }}
     >
-      🔄 Sync Productos
+      <RefreshCcw size={10} color="#0070f3"/> Sync Productos
     </button>
   </header>
 );

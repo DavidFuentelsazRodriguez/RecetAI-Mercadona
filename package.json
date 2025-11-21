@@ -42,6 +42,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "ioredis": "^5.8.2",
+    "lucide-react": "^0.554.0",
     "mongoose": "^8.19.1",
     "next": "^15.5.4",
     "object-hash": "^3.0.0",

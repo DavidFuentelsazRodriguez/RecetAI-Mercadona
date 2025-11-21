@@ -119,8 +119,7 @@ export const searchProductsByTheme: (
   const searchResult = await client.search(COLLECTION_NAME, {
     vector: vector,
     limit: limit,
-    with_payload: true,
-    score_threshold: 0.7,
+    with_payload: true
   });
 
   return searchResult.map(res => ({

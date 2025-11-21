@@ -1,0 +1,179 @@
+.card {
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-top: 2rem;
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  background: linear-gradient(135deg, #0070f3 0%, #00c6ff 100%);
+  color: white;
+  padding: 2.5rem;
+  position: relative;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.description {
+  margin: 0.8rem 0 0 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+  font-weight: 400;
+  max-width: 90%;
+}
+
+.badgesGrid {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.content {
+  padding: 2.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.ingredientsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+
+.ingredientItem {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: #f9fafb;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.ingredientItem:hover {
+  border-color: #0070f3;
+  background: #f0f9ff;
+  transform: translateY(-2px);
+}
+
+.checkIcon {
+  color: #10b981; 
+  flex-shrink: 0;
+}
+
+.ingText {
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.ingQty {
+  font-weight: 700;
+  color: #0070f3;
+}
+
+.stepsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.stepItem {
+  display: flex;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+  align-items: flex-start
+}
+
+.stepNumber {
+  width: 32px;
+  height: 32px;
+  background: #0070f3;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 10px rgba(0, 112, 243, 0.3);
+  margin-top: 2px;
+}
+
+.stepText {
+  margin: 0;
+  padding-top: 0.3rem;
+  font-size: 1.05rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.macrosContainer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px dashed #e5e7eb;
+}
+
+.macroCard {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border: 1px solid #f3f4f6;
+}
+
+.macroLabel {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.macroValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+}

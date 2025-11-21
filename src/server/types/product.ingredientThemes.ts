@@ -1,4 +1,4 @@
-import { ProductData } from "../models";
+import { ProductData } from "../models/Product";
 import { Types } from "mongoose";
 
 export type ThemeProduct = ProductData & {

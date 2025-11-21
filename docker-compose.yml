@@ -17,6 +17,25 @@ services:
     depends_on:
       - mongodb
       - redis
+
+  frontend:
+    container_name: recetai-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      - WATCHPACK_POLLING=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    depends_on:
+      - backend
     
   worker:
     container_name: recetai-worker-dev

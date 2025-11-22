@@ -58,8 +58,10 @@ export class RecipePromptBuilder {
         - It MUST meet the defined NUTRITIONAL GOALS.
     4.  **DIFFICULTY**: Must be "easy", "medium", or "hard".
     5.  **LANGUAGE**: Output MUST be in **SPANISH**. Use correct grammar and capitalization.
-    6.  **UNITS**: All ingredient "unit" fields MUST be expressed in "g" (grams) or "kg" (kilograms). Do NOT use "units", "ml", "tbsp", "tsp", or any other measure.
-    
+    6.  **UNITS**: 
+        - For weight, use "g" or "kg".
+        - For countable items (eggs, tortillas, fruits, cans), you MUST use "unidades".
+        - Do NOT use "ml", "tbsp", "tsp".
     ### VALID EXAMPLE:
     \`\`\`json
     {

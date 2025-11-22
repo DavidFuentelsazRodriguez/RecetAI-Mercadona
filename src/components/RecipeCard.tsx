@@ -9,12 +9,36 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, dietLabel }) => {
+  const renderIngredient = (ing: Ingredient) => {
+    const unitLower = ing.unit.toLowerCase();
+    const isCountable = ['unidad', 'unidades', 'pieza', 'piezas', 'unit', 'units'].includes(
+      unitLower
+    );
+
+    if (isCountable) {
+      return (
+        <>
+          <span className={styles.ingQty}>{ing.quantity}</span> {ing.name}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <span className={styles.ingQty}>
+          {ing.quantity} {ing.unit}
+        </span>{' '}
+        de {ing.name}
+      </>
+    );
+  };
+
   return (
     <article className={styles.card}>
       <header className={styles.header}>
         <h2 className={styles.title}>{recipe.name}</h2>
         <p className={styles.description}>{recipe.description}</p>
-        
+
         <div className={styles.badgesGrid}>
           <div className={styles.badge}>
             <Clock size={18} /> {recipe.preparationTime} min
@@ -32,20 +56,17 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, dietLabel }) => 
       </header>
 
       <div className={styles.content}>
-        
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
-            <ShoppingCart className="text-blue-500" size={24} color="#0070f3" /> 
+            <ShoppingCart className="text-blue-500" size={24} color="#0070f3" />
             Lista de la Compra
           </h3>
-          
+
           <div className={styles.ingredientsGrid}>
             {recipe.ingredients.map((ing: Ingredient, i: number) => (
               <div key={i} className={styles.ingredientItem}>
                 <CheckCircle2 size={20} className={styles.checkIcon} />
-                <span className={styles.ingText}>
-                  <span className={styles.ingQty}>{ing.quantity} {ing.unit}</span> de {ing.name}
-                </span>
+                <span className={styles.ingText}>{renderIngredient(ing)}</span>
               </div>
             ))}
           </div>
@@ -53,10 +74,10 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, dietLabel }) => 
 
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
-            <ChefHat size={24} color="#0070f3" /> 
+            <ChefHat size={24} color="#0070f3" />
             Pasos de Preparación
           </h3>
-          
+
           <ol className={styles.stepsList}>
             {recipe.steps.map((step: string, i: number) => (
               <li key={i} className={styles.stepItem}>
@@ -74,14 +95,14 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, dietLabel }) => 
               {recipe.nutritionalInfo.protein}g
             </div>
           </div>
-          
+
           <div className={styles.macroCard}>
             <div className={styles.macroLabel}>Carbos</div>
             <div className={styles.macroValue} style={{ color: '#f59e0b' }}>
               {recipe.nutritionalInfo.carbs}g
             </div>
           </div>
-          
+
           <div className={styles.macroCard}>
             <div className={styles.macroLabel}>Grasas</div>
             <div className={styles.macroValue} style={{ color: '#10b981' }}>
@@ -89,7 +110,6 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, dietLabel }) => 
             </div>
           </div>
         </div>
-
       </div>
     </article>
   );

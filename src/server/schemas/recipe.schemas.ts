@@ -30,7 +30,7 @@ export const RecipeSuggestionSchema = z.object({
 });
 
 const PreferencesSchema = z.object({
-  diet: z.enum(['vegan', 'vegetarian', 'omnivore', 'gluten-free', 'lactose-free', 'keto', 'low-carb', 'high-protein', 'high-fiber', 'low-fat']).default('omnivore'),
+  diet: z.enum(['vegan', 'vegetarian', 'omnivore', 'gluten-free', 'lactose-free', 'keto', 'low-carb', 'high-protein', 'high-fiber', 'low-fat', 'pre-workout']).default('omnivore'),
   excludedIngredients: z.array(z.string()).default([]),
   ingredientThemes: z.array(z.string()).default([]),
   cookingTime: z.number().int().positive().optional(),
@@ -40,6 +40,12 @@ const PreferencesSchema = z.object({
 const NutritionalGoalsSchema = z.object({
   minCalories: z.number().int().positive().optional(),
   maxCalories: z.number().int().positive().optional(),
+  minProtein: z.number().int().positive().optional(),
+  maxProtein: z.number().int().positive().optional(),
+  minCarbs: z.number().int().positive().optional(),
+  maxCarbs: z.number().int().positive().optional(),
+  minFat: z.number().int().positive().optional(),
+  maxFat: z.number().int().positive().optional(),
 })
 
 export const RecipeParamsSchema = z.object({

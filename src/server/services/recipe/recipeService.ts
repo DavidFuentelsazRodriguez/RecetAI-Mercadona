@@ -17,11 +17,12 @@ import { searchProductsByTheme } from '../vectorStoreService';
 
 const DIET_TO_GOALS_MAP: Record<
   string,
-  { minProtein?: number; maxCarbs?: number; maxFat?: number }
+  { minProtein?: number; maxCarbs?: number; maxFat?: number; minCarbs?: number }
 > = {
   'low-fat': { maxFat: 15 },
   'low-carb': { maxCarbs: 25 },
   'high-protein': { minProtein: 30 },
+  'pre-workout': { minCarbs: 40, maxFat: 15 },
   keto: { maxCarbs: 10, maxFat: 60 },
 };
 

@@ -3,7 +3,10 @@ import { RecipeGenerationParams } from '../../types/recipe.types';
 import { z } from 'zod';
 
 export class RecipePromptBuilder {
-  private static readonly DIET_DESCRIPTIONS: Record<RecipeGenerationParams['preferences']['diet'], string> = {
+  private static readonly DIET_DESCRIPTIONS: Record<
+    RecipeGenerationParams['preferences']['diet'],
+    string
+  > = {
     vegan: 'Must be 100% plant-based, no animal products including honey, dairy, or eggs.',
     vegetarian: 'May include dairy and eggs but no meat, poultry, or fish.',
     keto: 'Must be very low in carbs (under 10g net carbs per serving).',
@@ -12,8 +15,12 @@ export class RecipePromptBuilder {
     'lactose-free': 'Must not contain lactose or dairy products.',
     'low-fat': 'Must be low in total fat, avoiding greasy or oily ingredients.',
     'low-carb': 'Must be low in carbohydrates, avoiding sugar, bread, and pasta.',
-    'high-protein': 'Must be high in protein, prioritizing ingredients like chicken, tofu, or legumes.',
-    'high-fiber': 'Must be high in fiber, prioritizing rich fiber sources like oats, beans, or nuts.'
+    'high-protein':
+      'Must be high in protein, prioritizing ingredients like chicken, tofu, or legumes.',
+    'high-fiber':
+      'Must be high in fiber, prioritizing rich fiber sources like oats, beans, or nuts.',
+    'pre-workout':
+      'Must be high in easily digestible carbohydrates for energy. Moderate protein, low fat and low fiber to avoid digestive issues during exercise.',
   };
 
   private static readonly STATIC_PROMPT_INSTRUCTIONS = `
@@ -92,7 +99,6 @@ export class RecipePromptBuilder {
     Generate the recipe. Remember: your response must be ONLY the JSON block, and it must follow ALL the rules, especially using ingredients from the lists and meeting the nutritional goals.
     `;
 
-  
   /**
    * Builds a prompt for the AI model to generate a recipe.
    * The prompt includes sections for dietary preferences, nutritional goals, ingredient themes, available ingredients, and static instructions.
@@ -139,7 +145,7 @@ export class RecipePromptBuilder {
   public static buildCorrectionPrompt(
     error: Error,
     invalidResponse?: string,
-    originalPrompt?: string,
+    originalPrompt?: string
   ): string {
     let errorDetails = '';
     if (error instanceof z.ZodError) {
@@ -189,11 +195,12 @@ Please review your calculations and ingredient list. You MUST provide ONLY the c
   public static buildNutritionalGoalsSection(
     nutritionalGoals: RecipeGenerationParams['nutritionalGoals']
   ): string {
-    const { minCalories, maxCalories } = nutritionalGoals;
+    const { minCalories, maxCalories, minCarbs } = nutritionalGoals;
 
     const lines = [
       minCalories ? `- Minimum calories: ${minCalories}` : null,
       maxCalories ? `- Maximum calories: ${maxCalories}` : null,
+      minCarbs ? `- Minimum carbohydrates: ${minCarbs}g (CRITICAL for energy)` : null,
     ];
 
     const validLines = lines.filter(Boolean);
@@ -212,7 +219,7 @@ Please review your calculations and ingredient list. You MUST provide ONLY the c
     themesNotFound: string[]
   ): string {
     if (allThemes.length === 0) {
-      return ''; 
+      return '';
     }
 
     const themesFound = allThemes.filter(

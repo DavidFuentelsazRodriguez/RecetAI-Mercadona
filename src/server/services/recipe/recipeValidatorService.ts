@@ -66,7 +66,7 @@ export class RecipeValidatorService {
     goals: RecipeGenerationParams['nutritionalGoals']
   ) {
     const { calories, protein, carbs, fat } = nutritionalInfo;
-    const { minCalories, maxCalories, minProtein, maxCarbs, maxFat } = goals;
+    const { minCalories, maxCalories, minProtein, maxCarbs, maxFat, minCarbs } = goals;
 
     if (minCalories && calories < minCalories) {
       throw new RecipeValidationError(
@@ -86,6 +86,13 @@ export class RecipeValidatorService {
     if (maxCarbs && carbs > maxCarbs) {
       throw new RecipeValidationError(ErrorMessages.valueAboveMax('g carbs', maxCarbs, carbs));
     }
+
+    if (minCarbs && carbs < minCarbs) {
+      throw new RecipeValidationError(
+        ErrorMessages.valueBelowMin('g carbs', minCarbs, carbs)
+      );
+    }
+    
     if (maxFat && fat > maxFat) {
       throw new RecipeValidationError(ErrorMessages.valueAboveMax('g fat', maxFat, fat));
     }

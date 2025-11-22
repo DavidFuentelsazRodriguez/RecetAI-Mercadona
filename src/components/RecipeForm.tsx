@@ -10,12 +10,13 @@ const DIET_OPTIONS: Option[] = [
   { value: "vegetarian", label: "🥦 Vegetariana" },
   { value: "vegan", label: "🌱 Vegana" },
   { value: "keto", label: "🥑 Keto" },
+  { value: "pre-workout", label: "🔥 Pre-Entreno (Carga Hidratos)" },
   { value: "low-carb", label: "📉 Baja en Carbohidratos" },
   { value: "high-protein", label: "💪 Alta en Proteína" },
   { value: "low-fat", label: "❤️ Baja en Grasas" },
   { value: "gluten-free", label: "🌾 Sin Gluten" },
   { value: "lactose-free", label: "🥛 Sin Lactosa" },
-  { value: "high-fiber", label: "🌽 Alta en Fibra" },
+  { value: "high-fiber", label: "🌽 Alta en Fibra" }
 ];
 
 const DIFFICULTY_OPTIONS: Option[] = [
@@ -73,7 +74,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             
             <CustomSelect 
-                label="Tipo de Dieta"
+                label="Tipo de Receta"
                 icon={<Leaf size={16} color='#0070f3'/>}
                 value={diet}
                 onChange={setDiet}

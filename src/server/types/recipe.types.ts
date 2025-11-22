@@ -8,11 +8,11 @@ export interface NutritionalInfo {
   calories: number;
   protein: number;
   carbs: number;
-  sugar?: number; 
+  sugar?: number;
   fat: number;
   saturatedFat?: number;
   sodium?: number;
-  fiber?: number;     
+  fiber?: number;
 }
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
@@ -31,7 +31,18 @@ export interface RecipeSuggestion {
 
 export interface RecipeGenerationParams {
   preferences: {
-    diet: 'vegan' | 'vegetarian' | 'omnivore' | 'gluten-free' | 'lactose-free' | 'keto' | 'low-carb' | 'high-protein' | 'high-fiber' | 'low-fat';
+    diet:
+      | 'vegan'
+      | 'vegetarian'
+      | 'omnivore'
+      | 'gluten-free'
+      | 'lactose-free'
+      | 'keto'
+      | 'low-carb'
+      | 'high-protein'
+      | 'high-fiber'
+      | 'low-fat'
+      | 'pre-workout';
     excludedIngredients: string[];
     ingredientThemes: string[];
     cookingTime?: number; //in minutes
@@ -41,6 +52,7 @@ export interface RecipeGenerationParams {
     minCalories?: number;
     maxCalories?: number;
     minProtein?: number;
+    minCarbs?: number;
     maxCarbs?: number;
     maxFat?: number;
   };

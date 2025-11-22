@@ -57,7 +57,7 @@ export class RecipePromptBuilder {
         - The generated nutritional information (calories, protein, etc.) MUST be a realistic calculation based on the provided ingredients and their quantities.
         - It MUST meet the defined NUTRITIONAL GOALS.
     4.  **DIFFICULTY**: Must be "easy", "medium", or "hard".
-    5.  **LANGUAGE**: Everything in English and in lowercase (except proper nouns if necessary).
+    5.  **LANGUAGE**: Output MUST be in **SPANISH**. Use correct grammar and capitalization.
     6.  **UNITS**: All ingredient "unit" fields MUST be expressed in "g" (grams) or "kg" (kilograms). Do NOT use "units", "ml", "tbsp", "tsp", or any other measure.
     
     ### VALID EXAMPLE:

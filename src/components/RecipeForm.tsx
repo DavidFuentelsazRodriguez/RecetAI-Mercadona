@@ -6,7 +6,7 @@ import { TagInput } from './TagInput';
 
 
 const DIET_OPTIONS: Option[] = [
-  { value: "omnivore", label: "🍖 Omnívora (Todo)" },
+  { value: "omnivore", label: "🍖 Omnívora" },
   { value: "vegetarian", label: "🥦 Vegetariana" },
   { value: "vegan", label: "🌱 Vegana" },
   { value: "keto", label: "🥑 Keto" },
@@ -19,9 +19,9 @@ const DIET_OPTIONS: Option[] = [
 ];
 
 const DIFFICULTY_OPTIONS: Option[] = [
-  { value: "easy", label: "🟢 Fácil (Principiante)" },
-  { value: "medium", label: "🟡 Media (Cocinillas)" },
-  { value: "hard", label: "🔴 Difícil (Chef)" },
+  { value: "easy", label: "🟢 Fácil" },
+  { value: "medium", label: "🟡 Media" },
+  { value: "hard", label: "🔴 Difícil" },
 ];
 
 interface RecipeFormProps {

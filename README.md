@@ -71,32 +71,32 @@ We use the `gemini-2.0-flash` model for fast and accurate generation. The system
 ├── .husky/               # Git hooks (pre-commit)
 │   └── pre-commit
 ├── src/
-│   ├── components/       # (Future) React Components
-│   ├── pages/            # (Future) Next.js Pages
-│   └── server/
-│       ├── config/       # All config files
-│       │   ├── database.ts
-│       │   ├── gemini.ts
-│       │   ├── logger.ts
-│       │   ├── queues.ts     # BullMQ Queue/Worker config
-│       │   └── rateLimiters.ts
-│       ├── controllers/  # API route handlers
-├       │   ├── __tests__/ # Integration tests
-│       ├── models/       # Mongoose Schemas (Product, Recipe, RecipeCache)
-│       ├── routes/       # Express route definitions
-│       ├── services/     # All business logic
-│       │   ├── recipe/   # Recipe generation logic
-│       │   ├── __tests__/ # Unit tests
-│       │   ├── fatsecretScraperService.ts
-│       │   └── ...
-│       ├── utils/
-│       ├── index.ts      # Express app definition (for tests)
-│       ├── server.ts     # Server entry point (runs the app)
-│       └── worker.ts     # Worker entry point (runs the queue)
+│   ├── components/       # React UI Components
+│   ├── pages/            # Next.js Pages
+│   │   ├── _app.tsx      # App Entry point (Global styles)
+│   │   └── index.tsx     # Main Page (Frontend Logic)
+│   ├── server/           # Backend Logic
+│   │   ├── config/       # All config files
+│   │   │   ├── database.ts
+│   │   │   ├── gemini.ts
+│   │   │   ├── logger.ts
+│   │   │   ├── queues.ts     # BullMQ Queue/Worker config
+│   │   │   └── rateLimiters.ts
+│   │   ├── controllers/  # API route handlers
+│   │   │   └── __tests__/    # Integration tests
+│   │   ├── models/       # Mongoose Schemas (Product, Recipe, RecipeCache)
+│   │   ├── routes/       # Express route definitions
+│   │   ├── services/     # Business Logic Layer
+│   │   │   ├── __tests__/    # Unit tests
+│   │   ├── utils/
+│   │   ├── index.ts      # Express app definition (for tests)
+│   │   ├── server.ts     # Server entry point (runs the API)
+│   │   └── worker.ts     # Worker entry point (runs the queue)
+│   └── styles/           # CSS Modules & Global styles
 ├── .env.example          # Environment variable template
 ├── .gitignore
-├── docker-compose.yml    # Docker orchestra file (API + Worker + DB + Cache)
-├── Dockerfile.dev        # Docker instructions for development
+├── docker-compose.yml    # Docker orchestra (API + Worker + Frontend + DBs)
+├── Dockerfile.dev        # Universal Dockerfile for Node services
 ├── jest.config.js
 ├── package.json
 └── tsconfig.json

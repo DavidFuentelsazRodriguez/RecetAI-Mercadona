@@ -148,8 +148,8 @@
 
 .macrosContainer {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 1rem;
   margin-top: 3rem;
   padding-top: 2rem;
   border-top: 2px dashed #e5e7eb;
@@ -157,23 +157,85 @@
 
 .macroCard {
   text-align: center;
-  padding: 1rem;
-  border-radius: 16px;
+  padding: 0.8rem 0.5rem; 
+  border-radius: 12px;      
   background: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
   border: 1px solid #f3f4f6;
+  transition: transform 0.2s;
+}
+
+.macroCard:hover {
+  transform: translateY(-2px);
+  border-color: #e5e7eb;
 }
 
 .macroLabel {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   color: #6b7280;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
 }
 
 .macroValue {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 800;
+  color: #111827;
+}
+
+.nutritionLabel {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  background-color: #fff;
+  border: 2px solid #111; 
+  border-radius: 8px;
+  font-family: 'Helvetica Neue', Arial, sans-serif; 
+  color: #111;
+}
+
+.macroGroup {
+  border-bottom: 1px solid #ddd;
+  padding: 0.8rem 0;
+}
+
+.macroGroup:last-child {
+  border-bottom: none;
+}
+
+.macroHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.macroTitle {
+  font-weight: 900; 
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.macroMainValue {
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.macroDetails {
+  margin-top: 0.4rem;
+  padding-left: 1rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.microRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+  border-bottom: 1px dotted #eee;
+}
+
+.microRow:last-child {
+  border-bottom: none;
 }

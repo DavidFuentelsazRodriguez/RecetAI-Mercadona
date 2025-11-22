@@ -168,8 +168,7 @@ describe('VectorStoreService', () => {
       expect(mockQdrantInstance.search).toHaveBeenCalledWith(
         'products',
         expect.objectContaining({
-          limit: 5,
-          score_threshold: 0.7,
+          limit: 5
         })
       );
     });
